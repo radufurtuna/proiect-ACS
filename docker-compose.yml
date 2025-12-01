@@ -1,0 +1,50 @@
+services:
+  # Backend - FastAPI Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: schedule-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistență pentru baza de date SQLite
+      - ./server/data:/app/data
+      # Volum pentru .env (opțional - pentru configurare)
+      # Decomentează linia de mai jos dacă ai fișier .env
+      # - ./server/.env:/app/.env:ro
+    environment:
+      - DATABASE_URL=sqlite:///./data/schedule.db
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - schedule-network
+
+  # Frontend - Next.js Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: schedule-client
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - schedule-network
+
+networks:
+  schedule-network:
+    driver: bridge

@@ -1,0 +1,22 @@
+INSTRUCȚIUNI PENTRU CREAREA FIȘIERULUI .env
+
+1. Creează un fișier nou numit ".env" în folderul "server/"
+2. Copiază următoarea configurare și completează cu datele tale:
+
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_USER=adresa-ta@domeniu.com
+SMTP_PASSWORD=parola-ta
+EMAIL_FROM=adresa-ta@domeniu.com
+
+3. Salvează fișierul ca ".env" (cu punct la început!)
+
+EXEMPLU COMPLET:
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_USER=radu.popescu@utm.md
+SMTP_PASSWORD=ParolaMea123
+EMAIL_FROM=radu.popescu@utm.md
+
+IMPORTANT: Nu comita fișierul .env în Git!
+
