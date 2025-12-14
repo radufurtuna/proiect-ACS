@@ -1,6 +1,36 @@
+# Python / Server
 .env
 .venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+server/data/
+server/schedule.db
+
+# Node.js / Next.js (client-admin și client-student)
+node_modules/
+.next/
+out/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

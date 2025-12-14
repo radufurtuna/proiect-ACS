@@ -6,7 +6,7 @@ import { authService, scheduleService } from '@/lib/api';
 import { loadScheduleCache, saveScheduleCache } from '@/lib/cache';
 import { exportScheduleToPdf } from '@/lib/exportPdf';
 import { exportScheduleToExcel } from '@/lib/exportExcel';
-import GroupFilter from '@/components/schedule/GroupFilter';
+import GroupFilter from '@/components/student/GroupFilter';
 import { scheduleWebSocket } from '@/lib/websocket';
 import type { Schedule } from '@/types/schedule';
 
