@@ -937,6 +937,9 @@ export default function ScheduleGrid() {
       // Execută toate operațiile în paralel
       await Promise.all([...updatePromises, ...createPromises, ...deletePromises]);
 
+      // NOTIFICĂRI DEZACTIVATE - Comentat pentru a nu trimite email-uri automat la modificarea orarului
+      // Dacă vrei să reactivezi notificările, decomentează codul de mai jos
+      /*
       // Trimite notificări către studenții din grupele modificate
       let notificationMessage = '';
       if (groupIdsToUpdate.size > 0) {
@@ -962,6 +965,8 @@ export default function ScheduleGrid() {
           notificationMessage = ' Notificările către studenți nu au putut fi trimise.';
         }
       }
+      */
+      let notificationMessage = ''; // Inițializat gol pentru a nu afecta restul codului
 
       const createdItems = [];
       if (subjectsToCreate.size > 0) createdItems.push(`${subjectsToCreate.size} disciplină(e)`);

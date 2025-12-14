@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Student Schedule Management",
-  description: "Aplicație pentru managementul orarului studenților",
+  description: "Aplicație pentru vizualizarea orarului studenților",
 };
 
 export default function RootLayout({

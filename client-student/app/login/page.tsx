@@ -107,12 +107,15 @@ export default function LoginPage() {
       // Salvează token-ul
       authService.setToken(response.access_token);
 
-      // Redirecționează în funcție de rol
+      // Verifică rolul - admin nu poate accesa acest client
       if (response.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/student/schedule');
+        setError('Acces restricționat. Administratorii trebuie să folosească panoul de administrare.');
+        authService.logout();
+        return;
       }
+
+      // Redirecționează către orar
+      router.push('/schedule');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Cod invalid sau eroare la setarea parolei. Te rugăm să încerci din nou.');
     } finally {
@@ -135,21 +138,20 @@ export default function LoginPage() {
       // Salvează token-ul
       authService.setToken(response.access_token);
 
-      // Redirecționează în funcție de rol
+      // Verifică rolul - admin nu poate accesa acest client
       if (response.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/student/schedule');
+        setError('Acces restricționat. Administratorii trebuie să folosească panoul de administrare.');
+        authService.logout();
+        return;
       }
+
+      // Redirecționează către orar
+      router.push('/schedule');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Email sau parolă incorectă. Te rugăm să încerci din nou.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleViewSchedule = () => {
-    router.push('/student/schedule');
   };
 
   const handleBackToEmail = () => {
@@ -649,7 +651,7 @@ export default function LoginPage() {
         {(step === 'email' || step === 'password') && (
           <button
             type="button"
-            onClick={handleViewSchedule}
+            onClick={() => router.push('/schedule')}
             style={{
               width: '100%',
               padding: '0.75rem',

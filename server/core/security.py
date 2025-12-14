@@ -3,6 +3,7 @@ Module pentru securitate: hash-uri de parole, JWT tokens, etc.
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
+import os
 import jwt
 from passlib.context import CryptContext
 from passlib.exc import UnknownHashError
@@ -11,7 +12,7 @@ from passlib.exc import UnknownHashError
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # Configurare pentru JWT
-SECRET_KEY = "your-secret-key-change-in-production"  # TODO: Mută într-un fișier .env
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")  # Folosește variabilă de mediu sau default
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # Token-ul expiră după 24 de ore (1440 minute)
 

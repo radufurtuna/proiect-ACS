@@ -15,7 +15,7 @@ services:
       # - ./server/.env:/app/.env:ro
     environment:
       - DATABASE_URL=sqlite:///./data/schedule.db
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -26,16 +26,35 @@ services:
     networks:
       - schedule-network
 
-  # Frontend - Next.js Client
-  client:
+  # Frontend - Next.js Client Student
+  client-student:
     build:
-      context: ./client
+      context: ./client-student
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=http://localhost:8000
-    container_name: schedule-client
+    container_name: schedule-client-student
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - schedule-network
+
+  # Frontend - Next.js Client Admin
+  client-admin:
+    build:
+      context: ./client-admin
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: schedule-client-admin
+    ports:
+      - "3001:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
