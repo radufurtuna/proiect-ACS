@@ -33,7 +33,12 @@ type GroupColumn = {
   groupId?: number; // ID-ul grupei din baza de date (dacă există)
 };
 
-export default function ScheduleGrid() {
+type ScheduleGridProps = {
+  academicYear?: number; // Anul academic (1, 2, 3, sau 4)
+  period?: string | null; // Perioada academică (semester1, assessments1, exams, assessments2, semester2)
+};
+
+export default function ScheduleGrid({ academicYear = 1, period = null }: ScheduleGridProps = {}) {
   const [groups, setGroups] = useState<GroupColumn[]>([]);
   const [cellData, setCellData] = useState<Record<string, Record<string, CellData>>>({}); // [groupId][cellKey] = CellData
   const [referenceGroups, setReferenceGroups] = useState<Group[]>([]);
@@ -48,6 +53,8 @@ export default function ScheduleGrid() {
   // Stare pentru a ține minte care căsuță are input-urile pentru săptămâna impară deschise
   // Format: "groupId-cellKey" => boolean
   const [oddWeekInputsOpen, setOddWeekInputsOpen] = useState<Record<string, boolean>>({});
+  // Tracking pentru grupele modificate - doar acestea vor fi salvate
+  const [modifiedGroups, setModifiedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadReferenceData = async () => {
@@ -235,6 +242,8 @@ export default function ScheduleGrid() {
 
   const handleGroupNameChange = (groupId: string, newName: string) => {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, groupName: newName } : g)));
+    // Marchează grupa ca modificată când se schimbă numele
+    setModifiedGroups((prev) => new Set(prev).add(groupId));
   };
 
   const handleInputChange = (groupId: string, day: string, hour: string, field: keyof CellData, value: string) => {
@@ -249,6 +258,8 @@ export default function ScheduleGrid() {
         },
       },
     }));
+    // Marchează grupa ca modificată
+    setModifiedGroups((prev) => new Set(prev).add(groupId));
   };
 
   // Handler pentru input-urile săptămânii impare
@@ -267,6 +278,8 @@ export default function ScheduleGrid() {
         },
       },
     }));
+    // Marchează grupa ca modificată
+    setModifiedGroups((prev) => new Set(prev).add(groupId));
   };
 
   // Toggle pentru a deschide/închide input-urile săptămânii impare
@@ -288,7 +301,7 @@ export default function ScheduleGrid() {
     
     if (hasChanges) {
       const confirmed = window.confirm(
-        'Ești sigur că vrei să anulezi toate modificările? Toate datele nesalvate vor fi pierdute.'
+        'Ești sigur că vrei să anulezi toate modificările?'
       );
       if (!confirmed) {
         return;
@@ -660,8 +673,13 @@ export default function ScheduleGrid() {
         setRooms(updatedRooms);
       }
 
-      // Creează sau actualizează grupele
-      for (const groupColumn of groups) {
+      // Filtrează doar grupele modificate pentru a optimiza salvarea
+      const groupsToProcess = modifiedGroups.size > 0 
+        ? groups.filter(g => modifiedGroups.has(g.id))
+        : groups; // Dacă nu există tracking, procesează toate (pentru backward compatibility)
+
+      // Creează sau actualizează grupele (doar cele modificate)
+      for (const groupColumn of groupsToProcess) {
         if (!groupColumn.groupName.trim()) {
           continue;
         }
@@ -937,6 +955,9 @@ export default function ScheduleGrid() {
       // Execută toate operațiile în paralel
       await Promise.all([...updatePromises, ...createPromises, ...deletePromises]);
 
+      // Resetează tracking-ul grupelor modificate după salvare cu succes
+      setModifiedGroups(new Set());
+
       // NOTIFICĂRI DEZACTIVATE - Comentat pentru a nu trimite email-uri automat la modificarea orarului
       // Dacă vrei să reactivezi notificările, decomentează codul de mai jos
       /*
@@ -1086,6 +1107,11 @@ export default function ScheduleGrid() {
                 subject: schedule.subject.name,
                 professor: schedule.professor.full_name,
                 room: schedule.room.code,
+                oddWeek: schedule.odd_week_subject && schedule.odd_week_professor && schedule.odd_week_room ? {
+                  subject: schedule.odd_week_subject.name,
+                  professor: schedule.odd_week_professor.full_name,
+                  room: schedule.odd_week_room.code,
+                } : undefined,
               };
             }
             newCellData[newGroup.id] = groupCellData;
@@ -1384,9 +1410,9 @@ export default function ScheduleGrid() {
                   textAlign: 'center',
                   fontWeight: 'bold',
                   color: '#000',
-                  width: '80px',
-                  minWidth: '80px',
-                  maxWidth: '80px',
+                  width: '30px',
+                  minWidth: '30px',
+                  maxWidth: '30px',
                 }}
               >
                 Zilele
@@ -1399,9 +1425,9 @@ export default function ScheduleGrid() {
                   textAlign: 'center',
                   fontWeight: 'bold',
                   color: '#000',
-                  width: '60px',
-                  minWidth: '60px',
-                  maxWidth: '60px',
+                  width: '30px',
+                  minWidth: '30px',
+                  maxWidth: '30px',
                 }}
               >
                 Orele
@@ -1454,9 +1480,9 @@ export default function ScheduleGrid() {
                           fontWeight: 'bold',
                           verticalAlign: 'top',
                           color: '#000',
-                          width: '80px',
-                          minWidth: '80px',
-                          maxWidth: '80px',
+                          width: '30px',
+                          minWidth: '30px',
+                          maxWidth: '30px',
                         }}
                       >
                         {day}
@@ -1468,9 +1494,9 @@ export default function ScheduleGrid() {
                         padding: '0.5rem',
                         textAlign: 'center',
                         color: '#000',
-                        width: '60px',
-                        minWidth: '60px',
-                        maxWidth: '60px',
+                        width: '30px',
+                        minWidth: '30px',
+                        maxWidth: '30px',
                       }}
                     >
                       {hour}
