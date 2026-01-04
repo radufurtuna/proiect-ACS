@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -65,8 +66,17 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Folosește DATABASE_URL din variabila de mediu dacă există, altfel folosește config din alembic.ini
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        # Suprascrie configurația din alembic.ini cu variabila de mediu
+        configuration = config.get_section(config.config_ini_section, {})
+        configuration["sqlalchemy.url"] = database_url
+    else:
+        configuration = config.get_section(config.config_ini_section, {})
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
