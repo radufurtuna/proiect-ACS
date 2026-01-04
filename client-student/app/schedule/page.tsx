@@ -7,6 +7,10 @@ import { loadScheduleCache, saveScheduleCache } from '@/lib/cache';
 import { exportScheduleToPdf } from '@/lib/exportPdf';
 import { exportScheduleToExcel } from '@/lib/exportExcel';
 import GroupFilter from '@/components/student/GroupFilter';
+import CycleFButton from '@/components/student/CycleFButton';
+import CycleFRButton from '@/components/student/CycleFRButton';
+import CycleMasteratButton from '@/components/student/CycleMasteratButton';
+import ScheduleTable from '@/components/student/ScheduleTable';
 import { scheduleWebSocket } from '@/lib/websocket';
 import type { Schedule } from '@/types/schedule';
 
@@ -28,6 +32,12 @@ const STATUS_COLORS: Record<string, string> = {
   canceled: '#d9534f',
 };
 
+// Lățimi pentru casutele tabelului de selecție orar
+const FIRST_COLUMN_WIDTH = '250px'; // Lățimea primei coloane (cu textele)
+const YEAR_COLUMN_WIDTH = '90px'; // Lățimea coloanelor cu anii și casutele goale
+// Lățimea totală a tabelului numerotat: prima coloană + 4 coloane cu anii
+const TABLE_WIDTH = '710px'; // 250px + (4 × 90px) = 610px
+
 export default function StudentSchedule() {
   const router = useRouter();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -41,6 +51,8 @@ export default function StudentSchedule() {
   const [wsConnected, setWsConnected] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const isFetchingRef = useRef(false); // Flag pentru a preveni cereri duplicate
+  const [showSchedule, setShowSchedule] = useState(false); // Control pentru afișarea orarului sau butoanelor
+  const [openCycles, setOpenCycles] = useState<Set<'F' | 'FR' | 'masterat'>>(new Set()); // Set pentru a ține minte butoanele deschise
 
   // Verificare status conexiune online/offline
   useEffect(() => {
@@ -425,7 +437,92 @@ export default function StudentSchedule() {
             {error}
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%', marginBottom: '1rem', marginTop: '0', position: 'relative' }}>
+
+        {/* Container cu butoane - se afișează inițial */}
+        {!showSchedule && (
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              overflow: 'hidden',
+              padding: '2rem',
+              width: TABLE_WIDTH,
+              margin: '0 auto',
+            }}
+          >
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+              }}
+            >
+              <tbody>
+                <CycleFButton
+                  isOpen={openCycles.has('F')}
+                  onToggle={() => {
+                    setOpenCycles((prev) => {
+                      const newSet = new Set(prev);
+                      if (newSet.has('F')) {
+                        newSet.delete('F');
+                      } else {
+                        newSet.add('F');
+                      }
+                      return newSet;
+                    });
+                  }}
+                  onScheduleSelect={(year, period, cellNumber) => {
+                    // Doar butonul numerotat cu 1 deschide orarul existent
+                    if (cellNumber === 1) {
+                      console.log('Selected:', 'F', year, period, 'cellNumber:', cellNumber);
+                    setShowSchedule(true);
+                    } else {
+                      // Pentru celelalte butoane, afișează un mesaj că orarul nu este disponibil încă
+                      alert('Orarul pentru această selecție nu este disponibil încă.');
+                    }
+                  }}
+                />
+                <CycleFRButton
+                  isOpen={openCycles.has('FR')}
+                  onToggle={() => {
+                    setOpenCycles((prev) => {
+                      const newSet = new Set(prev);
+                      if (newSet.has('FR')) {
+                        newSet.delete('FR');
+                      } else {
+                        newSet.add('FR');
+                      }
+                      return newSet;
+                    });
+                  }}
+                  onScheduleSelect={(year, period, cellNumber) => {
+                    // Pentru FR, toate butoanele afișează mesaj că orarul nu este disponibil încă
+                    alert('Orarul pentru această selecție nu este disponibil încă.');
+                  }}
+                />
+                <CycleMasteratButton
+                  isOpen={openCycles.has('masterat')}
+                  onToggle={() => {
+                    setOpenCycles((prev) => {
+                      const newSet = new Set(prev);
+                      if (newSet.has('masterat')) {
+                        newSet.delete('masterat');
+                      } else {
+                        newSet.add('masterat');
+                      }
+                      return newSet;
+                    });
+                  }}
+                />
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Orarul - se afișează doar când showSchedule este true */}
+        {showSchedule && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%', marginBottom: '1rem', marginTop: '0', position: 'relative' }}>
           {/* Componentă de filtrare pentru grupe */}
           <GroupFilter
             groups={uniqueGroups}
@@ -594,175 +691,26 @@ export default function StudentSchedule() {
               boxSizing: 'border-box',
             }}
           >
-            <div style={{ overflowX: 'auto' }}>
-              <table
-                style={{
-                  width: 'auto',
-                  borderCollapse: 'collapse',
-                  tableLayout: 'fixed',
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th
-                      style={{
-                        border: '1px solid #000',
-                        padding: '0.5rem',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        color: '#000',
-                        width: '80px',
-                        minWidth: '80px',
-                        maxWidth: '80px',
-                      }}
-                    >
-                      Zilele
-                    </th>
-                    <th
-                      style={{
-                        border: '1px solid #000',
-                        padding: '0.5rem',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        color: '#000',
-                        width: '125px',
-                        minWidth: '125px',
-                        maxWidth: '125px',
-                      }}
-                    >
-                      Orele
-                    </th>
-                    {(selectedGroup === 'all' ? uniqueGroups : [selectedGroup]).map((groupCode) => (
-                      <th
-                        key={groupCode}
-                        style={{
-                          border: '1px solid #000',
-                          padding: '0.5rem',
-                          backgroundColor: '#f0f0f0',
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          color: '#000',
-                          width: '150px',
-                          minWidth: '150px',
-                          maxWidth: '150px',
-                        }}
-                      >
-                        {groupCode}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'].map((day) => (
-                    <Fragment key={day}>
-                      {['8.00-9.30', '9.45-11.15', '11.30-13.00', '13.30-15.00', '15.15-16.45', '17.00-18.30', '18.45-20.15'].map((hour, index) => (
-                        <tr key={`${day}-${hour}`}>
-                          {index === 0 && (
-                            <td
-                              rowSpan={7}
-                              style={{
-                                border: '1px solid #000',
-                                padding: '0.5rem',
-                                textAlign: 'center',
-                                fontWeight: 'bold',
-                                verticalAlign: 'top',
-                                color: '#000',
-                                width: '80px',
-                                minWidth: '80px',
-                                maxWidth: '80px',
-                              }}
-                            >
-                              {day}
-                            </td>
-                          )}
-                          <td
-                            style={{
-                              border: '1px solid #000',
-                              padding: '0.5rem',
-                              textAlign: 'center',
-                              color: '#000',
-                              width: '100px',
-                              minWidth: '100px',
-                              maxWidth: '100px',
-                            }}
-                          >
-                            {hour}
-                          </td>
-                          {(selectedGroup === 'all' ? uniqueGroups : [selectedGroup]).map((groupCode) => {
-                            const schedule = filteredSchedules.find(
-                              (s) => s.group.code === groupCode && s.day === day && s.hour === hour
-                            );
-                            return (
-                              <td
-                                key={groupCode}
-                                style={{
-                                  border: '1px solid #000',
-                                  padding: '0.5rem',
-                                  width: '150px',
-                                  minWidth: '150px',
-                                  maxWidth: '150px',
-                                  color: '#000',
-                                  textAlign: 'center',
-                                  verticalAlign: 'middle',
-                                }}
-                              >
-                                {schedule ? (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                    {/* Date normale */}
-                                    <div style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                                      {schedule.subject.name}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem' }}>
-                                      {schedule.professor.full_name}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem' }}>
-                                      {schedule.room.code}
-                                    </div>
-                                    
-                                    {/* Date pentru săptămâna impară (dacă există) */}
-                                    {schedule.odd_week_subject && schedule.odd_week_professor && schedule.odd_week_room && (
-                                      <div style={{ 
-                                        marginTop: '0.5rem', 
-                                        padding: '0.5rem',
-                                        backgroundColor: '#e0e0e0',
-                                        borderRadius: '3px',
-                                        borderTop: '1px dashed #999',
-                                      }}>
-                                        <div style={{ 
-                                          fontSize: '0.7rem',
-                                          color: '#666',
-                                          fontWeight: '500',
-                                          marginBottom: '0.25rem'
-                                        }}>
-                                          Săpt. Impară:
-                                        </div>
-                                        <div style={{ fontSize: '0.7rem', fontWeight: '500', color: '#333' }}>
-                                          {schedule.odd_week_subject.name}
-                                        </div>
-                                        <div style={{ fontSize: '0.7rem', color: '#333' }}>
-                                          {schedule.odd_week_professor.full_name}
-                                        </div>
-                                        <div style={{ fontSize: '0.7rem', color: '#333' }}>
-                                          {schedule.odd_week_room.code}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div style={{ fontSize: '0.75rem', color: '#999' }}>—</div>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <h2
+              style={{
+                textAlign: 'center',
+                marginBottom: '1rem',
+                color: '#000',
+                fontSize: '1rem',
+                fontWeight: '100',
+              }}
+            >
+              Orar semestrul de toamnă anul I
+            </h2>
+            <ScheduleTable
+              schedules={filteredSchedules}
+              selectedGroup={selectedGroup}
+              uniqueGroups={uniqueGroups}
+            />
           </div>
         )}
+        </>
+      )}
       </main>
     </div>
   );

@@ -332,7 +332,7 @@ export default function AdminSidebar({ activeItem, onSelect }: AdminSidebarProps
           );
         })}
       </div>
-    </nav>
+      </nav>
   );
 }
 

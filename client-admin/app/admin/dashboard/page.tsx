@@ -1528,32 +1528,11 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeView === 'schedule-year1' && selectedSemester === 'semester1' && selectedCycle === 'F' && (
+        {/* Afișează ScheduleGrid pentru toți anii (1-4) când este selectat semester1 sau semester2 pentru F sau FR */}
+        {(activeView === 'schedule-year1' || activeView === 'schedule-year2' || activeView === 'schedule-year3' || activeView === 'schedule-year4') &&
+         (selectedSemester === 'semester1' || selectedSemester === 'semester2') &&
+         (selectedCycle === 'F' || selectedCycle === 'FR') && (
           <ScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} />
-        )}
-
-        {(activeView === 'schedule-year2' || activeView === 'schedule-year3' || activeView === 'schedule-year4') && (
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              padding: '3rem',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              textAlign: 'center',
-              minHeight: '400px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <h2 style={{ color: '#0f172a', marginBottom: '0.5rem', fontSize: '1.5rem' }}>
-              {activeView === 'schedule-year2' && 'Anul II'}
-              {activeView === 'schedule-year3' && 'Anul III'}
-              {activeView === 'schedule-year4' && 'Anul IV'}
-            </h2>
-            
-          </div>
         )}
 
         {activeView === 'resources' && <UserManagement />}
