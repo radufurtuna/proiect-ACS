@@ -10,7 +10,7 @@ import ScheduleGridCell from './ScheduleGridCell';
 import ScheduleTable from './ScheduleTable';
 import ScheduleTableActions from './ScheduleTableActions';
 
-export default function ScheduleGrid({ academicYear = 1, period = null }: ScheduleGridProps = {}) {
+export default function ScheduleGrid({ academicYear = 1, period = null, cycleType = null }: ScheduleGridProps = {}) {
   const [groups, setGroups] = useState<GroupColumn[]>([]);
   const [cellData, setCellData] = useState<Record<string, Record<string, CellData>>>({}); // [groupId][cellKey] = CellData
   const [referenceGroups, setReferenceGroups] = useState<Group[]>([]);
@@ -62,7 +62,24 @@ export default function ScheduleGrid({ academicYear = 1, period = null }: Schedu
       }
 
       try {
-        const schedules = await scheduleService.getAllSchedules();
+        // Construiește parametrii de filtrare
+        const filterParams: {
+          academic_year?: number;
+          semester?: string;
+          cycle_type?: string;
+        } = {};
+        
+        if (academicYear !== undefined && academicYear !== null) {
+          filterParams.academic_year = academicYear;
+        }
+        if (period) {
+          filterParams.semester = period;
+        }
+        if (cycleType) {
+          filterParams.cycle_type = cycleType;
+        }
+        
+        const schedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
         
         // Grupează schedule-urile după grup
         const schedulesByGroup = new Map<string, Schedule[]>();
@@ -549,6 +566,9 @@ export default function ScheduleGrid({ academicYear = 1, period = null }: Schedu
         professors,
         rooms,
         modifiedGroups,
+        academicYear,
+        semester: period,
+        cycleType,
         setReferenceGroups,
         setGroups,
         setSubjects,

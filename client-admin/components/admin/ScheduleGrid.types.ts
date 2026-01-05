@@ -31,4 +31,5 @@ export type GroupColumn = {
 export type ScheduleGridProps = {
   academicYear?: number; // Anul academic (1, 2, 3, sau 4)
   period?: string | null; // Perioada academică (semester1, assessments1, exams, assessments2, semester2)
+  cycleType?: string | null; // Tipul de ciclu ("F" pentru Frecvență, "FR" pentru Frecvență Redusă)
 };

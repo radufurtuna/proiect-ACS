@@ -49,11 +49,17 @@ def _serialize_schedule(schedule) -> ScheduleResponse:
 
 @router.get("/", response_model=List[ScheduleResponse])
 def get_all_schedules(
+    academic_year: int | None = None,
+    semester: str | None = None,
+    cycle_type: str | None = None,
     db: Session = Depends(get_db),
 ):
+    """
+    Obține toate schedule-urile, opțional filtrate după an academic, semestru și tip de ciclu.
+    """
     try:
         repo = ScheduleRepository()
-        schedules = repo.get_all(db)
+        schedules = repo.get_all(db, academic_year=academic_year, semester=semester, cycle_type=cycle_type)
         result = []
         for s in schedules:
             try:

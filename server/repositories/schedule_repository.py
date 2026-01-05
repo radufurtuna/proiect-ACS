@@ -34,8 +34,21 @@ class ScheduleRepository:
             )
         )
 
-    def get_all(self, db: Session):
-        return self._base_query(db).order_by(Schedule.day, Schedule.hour).all()
+    def get_all(self, db: Session, academic_year: int | None = None, semester: str | None = None, cycle_type: str | None = None):
+        """
+        Obține toate schedule-urile, opțional filtrate după an academic, semestru și tip de ciclu.
+        """
+        query = self._base_query(db)
+        
+        # Aplică filtrele doar dacă sunt specificate
+        if academic_year is not None:
+            query = query.filter(Schedule.academic_year == academic_year)
+        if semester is not None:
+            query = query.filter(Schedule.semester == semester)
+        if cycle_type is not None:
+            query = query.filter(Schedule.cycle_type == cycle_type)
+        
+        return query.order_by(Schedule.day, Schedule.hour).all()
 
     def get_by_group_code(self, db: Session, group_code: str):
         """
@@ -65,6 +78,9 @@ class ScheduleRepository:
             odd_week_subject_id=schedule_data.odd_week_subject_id,
             odd_week_professor_id=schedule_data.odd_week_professor_id,
             odd_week_room_id=schedule_data.odd_week_room_id,
+            academic_year=schedule_data.academic_year,
+            semester=schedule_data.semester,
+            cycle_type=schedule_data.cycle_type,
         )
         db.add(new_schedule)
         db.commit()
@@ -101,6 +117,12 @@ class ScheduleRepository:
             schedule.odd_week_professor_id = update_data.odd_week_professor_id
         if update_data.odd_week_room_id is not None:
             schedule.odd_week_room_id = update_data.odd_week_room_id
+        if update_data.academic_year is not None:
+            schedule.academic_year = update_data.academic_year
+        if update_data.semester is not None:
+            schedule.semester = update_data.semester
+        if update_data.cycle_type is not None:
+            schedule.cycle_type = update_data.cycle_type
 
         schedule.version += 1
 
