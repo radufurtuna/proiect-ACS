@@ -128,9 +128,13 @@ export const authService = {
 
 // Serviciu pentru managementul orarului
 export const scheduleService = {
-  // Obține toate orarele
-  getAllSchedules: async (): Promise<Schedule[]> => {
-    const response = await api.get<Schedule[]>('/schedule/');
+  // Obține toate orarele, opțional filtrate după an academic, semestru și tip de ciclu
+  getAllSchedules: async (params?: {
+    academic_year?: number;
+    semester?: string;
+    cycle_type?: string;
+  }): Promise<Schedule[]> => {
+    const response = await api.get<Schedule[]>('/schedule/', { params });
     return response.data;
   },
 
