@@ -37,6 +37,11 @@ class Schedule(Base):
     odd_week_subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
     odd_week_professor_id = Column(Integer, ForeignKey("professors.id"), nullable=True)
     odd_week_room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+    
+    # Câmpuri pentru filtrare după an academic, semestru și tip de ciclu
+    academic_year = Column(Integer, nullable=True)  # Anul academic (1, 2, 3, 4)
+    semester = Column(String, nullable=True)  # Semestrul (ex: "semester1", "semester2", "assessments1", "exams", "assessments2")
+    cycle_type = Column(String, nullable=True)  # Tipul de ciclu (ex: "F" pentru Frecvență, "FR" pentru Frecvență Redusă)
 
     group = relationship("Group")
     

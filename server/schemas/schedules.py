@@ -26,6 +26,9 @@ class ScheduleBase(BaseModel):
     odd_week_subject_id: int | None = None
     odd_week_professor_id: int | None = None
     odd_week_room_id: int | None = None
+    academic_year: int | None = None  # Anul academic (1, 2, 3, 4)
+    semester: str | None = None  # Semestrul (ex: "semester1", "semester2", "assessments1", "exams", "assessments2")
+    cycle_type: str | None = None  # Tipul de ciclu (ex: "F" pentru Frecvență, "FR" pentru Frecvență Redusă)
 
 
 class ScheduleCreate(ScheduleBase):
@@ -45,6 +48,9 @@ class ScheduleUpdate(BaseModel):
     odd_week_subject_id: int | None = None
     odd_week_professor_id: int | None = None
     odd_week_room_id: int | None = None
+    academic_year: int | None = None
+    semester: str | None = None
+    cycle_type: str | None = None
 
 
 class ScheduleResponse(BaseModel):
@@ -62,6 +68,9 @@ class ScheduleResponse(BaseModel):
     odd_week_subject: SubjectResponse | None = None
     odd_week_professor: ProfessorResponse | None = None
     odd_week_room: RoomResponse | None = None
+    academic_year: int | None = None
+    semester: str | None = None
+    cycle_type: str | None = None
 
     class Config:
         from_attributes = True
