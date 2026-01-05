@@ -45,6 +45,9 @@ export interface Schedule {
   odd_week_subject?: Subject | null;
   odd_week_professor?: Professor | null;
   odd_week_room?: Room | null;
+  academic_year?: number | null;
+  semester?: string | null;
+  cycle_type?: string | null;
 }
 
 export interface ScheduleCreate {
@@ -60,6 +63,9 @@ export interface ScheduleCreate {
   odd_week_subject_id?: number | null;
   odd_week_professor_id?: number | null;
   odd_week_room_id?: number | null;
+  academic_year?: number | null;
+  semester?: string | null;
+  cycle_type?: string | null;
 }
 
 export type ScheduleUpdate = Partial<ScheduleCreate>;

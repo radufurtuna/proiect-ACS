@@ -53,6 +53,10 @@ export default function StudentSchedule() {
   const isFetchingRef = useRef(false); // Flag pentru a preveni cereri duplicate
   const [showSchedule, setShowSchedule] = useState(false); // Control pentru afișarea orarului sau butoanelor
   const [openCycles, setOpenCycles] = useState<Set<'F' | 'FR' | 'masterat'>>(new Set()); // Set pentru a ține minte butoanele deschise
+  // State pentru filtrarea schedule-urilor
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<number | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
+  const [selectedCycleType, setSelectedCycleType] = useState<string | null>(null);
 
   // Verificare status conexiune online/offline
   useEffect(() => {
@@ -121,7 +125,28 @@ export default function StudentSchedule() {
           if (showLoading) {
           setLoading(true);
           }
-          const data = await scheduleService.getAllSchedules();
+          
+          // Construiește parametrii de filtrare dacă sunt setate
+          const filterParams: {
+            academic_year?: number;
+            semester?: string;
+            cycle_type?: string;
+          } = {};
+          
+          if (selectedAcademicYear !== null && selectedAcademicYear !== undefined) {
+            filterParams.academic_year = selectedAcademicYear;
+          }
+          if (selectedSemester) {
+            filterParams.semester = selectedSemester;
+          }
+          if (selectedCycleType) {
+            filterParams.cycle_type = selectedCycleType;
+          }
+          
+          // Folosește filtrarea doar dacă toate valorile sunt setate
+          const data = await scheduleService.getAllSchedules(
+            Object.keys(filterParams).length > 0 ? filterParams : undefined
+          );
           setSchedules(data);
           setFilteredSchedules(data);
           setError(''); // Resetează erorile la reîncărcare reușită
@@ -150,8 +175,11 @@ export default function StudentSchedule() {
       }
     };
 
-    // Încărcare inițială - încearcă cache-ul primul, apoi serverul
-    fetchSchedules(true, true);
+    // Încărcare inițială - doar dacă există o selecție (nu încărca toate schedule-urile la start)
+    // Schedule-urile vor fi încărcate când studentul selectează un an/semestru/ciclu
+    if (selectedAcademicYear !== null && selectedSemester !== null && selectedCycleType !== null) {
+      fetchSchedules(true, false);
+    }
 
     // Conectare WebSocket pentru actualizări în timp real
     if (isOnline) {
@@ -244,7 +272,7 @@ export default function StudentSchedule() {
         clearInterval(pollingInterval);
       };
     }
-  }, [isOnline]);
+  }, [isOnline, selectedAcademicYear, selectedSemester, selectedCycleType]);
 
   useEffect(() => {
     if (selectedGroup === 'all') {
@@ -472,14 +500,12 @@ export default function StudentSchedule() {
                     });
                   }}
                   onScheduleSelect={(year, period, cellNumber) => {
-                    // Doar butonul numerotat cu 1 deschide orarul existent
-                    if (cellNumber === 1) {
-                      console.log('Selected:', 'F', year, period, 'cellNumber:', cellNumber);
+                    // Setează valorile pentru filtrare
+                    setSelectedAcademicYear(year);
+                    setSelectedSemester(period);
+                    setSelectedCycleType('F');
                     setShowSchedule(true);
-                    } else {
-                      // Pentru celelalte butoane, afișează un mesaj că orarul nu este disponibil încă
-                      alert('Orarul pentru această selecție nu este disponibil încă.');
-                    }
+                    // fetchSchedules va fi apelat automat prin useEffect când state-urile se actualizează
                   }}
                 />
                 <CycleFRButton
@@ -496,8 +522,12 @@ export default function StudentSchedule() {
                     });
                   }}
                   onScheduleSelect={(year, period, cellNumber) => {
-                    // Pentru FR, toate butoanele afișează mesaj că orarul nu este disponibil încă
-                    alert('Orarul pentru această selecție nu este disponibil încă.');
+                    // Setează valorile pentru filtrare
+                    setSelectedAcademicYear(year);
+                    setSelectedSemester(period);
+                    setSelectedCycleType('FR');
+                    setShowSchedule(true);
+                    // fetchSchedules va fi apelat automat prin useEffect când state-urile se actualizează
                   }}
                 />
                 <CycleMasteratButton
