@@ -12,6 +12,9 @@ export type SaveScheduleParams = {
   professors: Professor[];
   rooms: Room[];
   modifiedGroups: Set<string>;
+  academicYear?: number | null;
+  semester?: string | null;
+  cycleType?: string | null;
   setReferenceGroups: (groups: Group[] | ((prev: Group[]) => Group[])) => void;
   setGroups: (groups: GroupColumn[] | ((prev: GroupColumn[]) => GroupColumn[])) => void;
   setSubjects: (subjects: Subject[] | ((prev: Subject[]) => Subject[])) => void;
@@ -31,6 +34,9 @@ export const saveSchedule = async (params: SaveScheduleParams): Promise<void> =>
     professors,
     rooms,
     modifiedGroups,
+    academicYear,
+    semester,
+    cycleType,
     setReferenceGroups,
     setGroups,
     setSubjects,
@@ -270,6 +276,9 @@ export const saveSchedule = async (params: SaveScheduleParams): Promise<void> =>
           odd_week_subject_id: oddWeekSubjectId,
           odd_week_professor_id: oddWeekProfessorId,
           odd_week_room_id: oddWeekRoomId,
+          academic_year: academicYear ?? null,
+          semester: semester ?? null,
+          cycle_type: cycleType ?? null,
         });
       }
     }
@@ -304,7 +313,24 @@ export const saveSchedule = async (params: SaveScheduleParams): Promise<void> =>
     throw new Error('Nu există date de salvat');
   }
 
-  const existingSchedules = await scheduleService.getAllSchedules();
+  // Construiește parametrii de filtrare pentru a obține doar schedule-urile relevante
+  const filterParams: {
+    academic_year?: number;
+    semester?: string;
+    cycle_type?: string;
+  } = {};
+  
+  if (academicYear !== undefined && academicYear !== null) {
+    filterParams.academic_year = academicYear;
+  }
+  if (semester) {
+    filterParams.semester = semester;
+  }
+  if (cycleType) {
+    filterParams.cycle_type = cycleType;
+  }
+
+  const existingSchedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
   
   const existingSchedulesMap = new Map<string, Schedule>();
   for (const schedule of existingSchedules) {
@@ -355,6 +381,9 @@ export const saveSchedule = async (params: SaveScheduleParams): Promise<void> =>
             odd_week_subject_id: newSchedule.odd_week_subject_id,
             odd_week_professor_id: newSchedule.odd_week_professor_id,
             odd_week_room_id: newSchedule.odd_week_room_id,
+            academic_year: newSchedule.academic_year,
+            semester: newSchedule.semester,
+            cycle_type: newSchedule.cycle_type,
           })
         );
       }
@@ -385,7 +414,8 @@ export const saveSchedule = async (params: SaveScheduleParams): Promise<void> =>
     const currentReferenceGroups = await referenceDataService.getGroups();
     setReferenceGroups(currentReferenceGroups);
     
-    const schedules = await scheduleService.getAllSchedules();
+    // Reîncarcă schedule-urile folosind aceiași parametri de filtrare
+    const schedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
     
     const schedulesByGroup = new Map<string, Schedule[]>();
     for (const schedule of schedules) {

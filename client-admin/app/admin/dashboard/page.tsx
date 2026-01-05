@@ -1532,7 +1532,7 @@ export default function AdminDashboard() {
         {(activeView === 'schedule-year1' || activeView === 'schedule-year2' || activeView === 'schedule-year3' || activeView === 'schedule-year4') &&
          (selectedSemester === 'semester1' || selectedSemester === 'semester2') &&
          (selectedCycle === 'F' || selectedCycle === 'FR') && (
-          <ScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} />
+          <ScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} cycleType={selectedCycle || null} />
         )}
 
         {activeView === 'resources' && <UserManagement />}
