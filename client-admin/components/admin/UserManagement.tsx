@@ -5,12 +5,14 @@ import { userService, referenceDataService } from '@/lib/api';
 import type { User, UserCreateInput, UserUpdateInput } from '@/types/auth';
 import type { Group } from '@/types/schedule';
 import { initialUserForm, type UserFormState } from './types';
+import GroupAutocomplete from './GroupAutocomplete';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [groups, setGroups] = useState<Group[]>([]);
   const [userForm, setUserForm] = useState<UserFormState>({ ...initialUserForm });
+  const [groupCode, setGroupCode] = useState<string>(''); // Codul grupei pentru autocomplete
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -48,6 +50,18 @@ export default function UserManagement() {
       return;
     }
 
+    // Găsește ID-ul grupei pe baza codului introdus
+    let groupId: number | null = null;
+    if (userForm.role === 'student' && groupCode.trim()) {
+      const foundGroup = groups.find(g => g.code.toLowerCase() === groupCode.trim().toLowerCase());
+      if (foundGroup) {
+        groupId = foundGroup.id;
+      } else {
+        setError(`Grupă "${groupCode}" nu a fost găsită în baza de date.`);
+        return;
+      }
+    }
+
     try {
       setError('');
       setSuccess('');
@@ -55,7 +69,7 @@ export default function UserManagement() {
         const payload: UserUpdateInput = {
           username: userForm.username.trim(),
           role: userForm.role,
-          group_id: userForm.role === 'student' ? userForm.group_id : null,
+          group_id: groupId,
         };
         await userService.updateUser(userForm.id, payload);
         setSuccess('Utilizator actualizat.');
@@ -66,12 +80,13 @@ export default function UserManagement() {
           username: userForm.username.trim(),
           password: '', // Backend-ul va genera parola automat
           role: userForm.role,
-          group_id: userForm.role === 'student' ? userForm.group_id : null,
+          group_id: groupId,
         };
         await userService.createUser(payload);
         setSuccess('Utilizator creat cu parolă generată automat.');
       }
       setUserForm({ ...initialUserForm });
+      setGroupCode('');
       await loadUsers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
@@ -87,6 +102,13 @@ export default function UserManagement() {
       role: user.role,
       group_id: user.group_id || null,
     });
+    // Setează codul grupei pentru autocomplete
+    if (user.group_id) {
+      const userGroup = groups.find(g => g.id === user.group_id);
+      setGroupCode(userGroup?.code || '');
+    } else {
+      setGroupCode('');
+    }
     setError('');
     setSuccess('');
   };
@@ -115,6 +137,7 @@ export default function UserManagement() {
 
   const handleAddNew = () => {
     setUserForm({ ...initialUserForm });
+    setGroupCode('');
     setError('');
     setSuccess('');
   };
@@ -214,6 +237,9 @@ export default function UserManagement() {
                       role: newRole,
                       group_id: newRole === 'student' ? userForm.group_id : null // Resetează grupă dacă nu e student
                     });
+                    if (newRole !== 'student') {
+                      setGroupCode(''); // Resetează codul grupei dacă nu e student
+                    }
                   }}
                   style={{
                     width: '100%',
@@ -236,26 +262,11 @@ export default function UserManagement() {
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
                   Grupa
                 </label>
-                <select
-                  value={userForm.group_id || ''}
-                  onChange={(e) => setUserForm({ ...userForm, group_id: e.target.value ? parseInt(e.target.value) : null })}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '0.875rem',
-                    backgroundColor: 'white',
-                    color: '#000000',
-                  }}
-                >
-                  <option value="" style={{ color: '#000000' }}>Selectează grupă</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id} style={{ color: '#000000' }}>
-                      {group.code}
-                    </option>
-                  ))}
-                </select>
+                <GroupAutocomplete
+                  value={groupCode}
+                  onChange={(value) => setGroupCode(value)}
+                  placeholder="Caută grupă..."
+                />
               </div>
             </div>
 
@@ -278,7 +289,10 @@ export default function UserManagement() {
               {userForm.id && (
                 <button
                   type="button"
-                  onClick={() => setUserForm({ ...initialUserForm })}
+                  onClick={() => {
+                    setUserForm({ ...initialUserForm });
+                    setGroupCode('');
+                  }}
                   style={{
                     padding: '0.75rem 1.5rem',
                     backgroundColor: '#6b7280',

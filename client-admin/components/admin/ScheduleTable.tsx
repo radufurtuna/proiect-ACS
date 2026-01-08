@@ -17,6 +17,7 @@ import React from 'react';
 import { DAYS, TIME_SLOTS, type CellData, type GroupColumn } from './ScheduleGrid.types';
 import { getCellKey } from './ScheduleGrid.utils';
 import ScheduleGridCell from './ScheduleGridCell';
+import GroupAutocomplete from './GroupAutocomplete';
 
 interface ScheduleTableProps {
   groups: GroupColumn[];
@@ -95,21 +96,10 @@ export default function ScheduleTable({
                   maxWidth: '300px',
                 }}
               >
-                <input
-                  type="text"
-                  placeholder="Nume grupă"
+                <GroupAutocomplete
                   value={group.groupName}
-                  onChange={(e) => onGroupNameChange(group.id, e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.25rem',
-                    border: '1px solid #ccc',
-                    borderRadius: '2px',
-                    fontSize: '0.875rem',
-                    color: '#000',
-                    backgroundColor: '#fff',
-                    textAlign: 'center',
-                  }}
+                  onChange={(newValue) => onGroupNameChange(group.id, newValue)}
+                  placeholder="Nume grupă"
                 />
               </th>
             ))}

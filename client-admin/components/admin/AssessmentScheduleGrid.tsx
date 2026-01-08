@@ -6,12 +6,23 @@ import type { Schedule, Group, Subject, Professor, Room } from '@/types/schedule
 import { DAYS, TIME_SLOTS, type CellData, type GroupColumn, type ScheduleGridProps } from './ScheduleGrid.types';
 import { getCellKey, findIdByName } from './ScheduleGrid.utils';
 import { saveSchedule } from './ScheduleGrid.save';
-import ScheduleGridCell from './ScheduleGridCell';
-import ScheduleTable from './ScheduleTable';
+import AssessmentScheduleGridCell from './AssessmentScheduleGridCell';
+import AssessmentScheduleTable from './AssessmentScheduleTable';
 import ScheduleTableActions from './ScheduleTableActions';
 import ScheduleGridContainer from './ScheduleGridContainer';
 
-export default function ScheduleGrid({ academicYear = 1, period = null, cycleType = null }: ScheduleGridProps = {}) {
+// Tip pentru datele unui rând din tabelul de evaluare periodică
+export type AssessmentRow = {
+  id: string;
+  subject: string; // Disciplina
+  groups: string[]; // Componenţa seriei (grupele) - array de nume de grupe
+  professors: string[]; // Cadrul didactic titular - array pentru fiecare grupă
+  dates: string[]; // Data - array pentru fiecare grupă
+  times: string[]; // Ora - array pentru fiecare grupă
+  rooms: string[]; // Sala - array pentru fiecare grupă
+};
+
+export default function AssessmentScheduleGrid({ academicYear = 1, period = null, cycleType = null }: ScheduleGridProps = {}) {
   const [groups, setGroups] = useState<GroupColumn[]>([]);
   const [cellData, setCellData] = useState<Record<string, Record<string, CellData>>>({}); // [groupId][cellKey] = CellData
   const [referenceGroups, setReferenceGroups] = useState<Group[]>([]);
@@ -23,11 +34,10 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const deleteMenuRef = useRef<HTMLDivElement>(null);
   const hasLoadedSchedules = useRef(false);
-  // Stare pentru a ține minte care căsuță are input-urile pentru săptămâna impară deschise
-  // Format: "groupId-cellKey" => boolean
-  const [oddWeekInputsOpen, setOddWeekInputsOpen] = useState<Record<string, boolean>>({});
   // Tracking pentru grupele modificate - doar acestea vor fi salvate
   const [modifiedGroups, setModifiedGroups] = useState<Set<string>>(new Set());
+  // Rânduri pentru tabelul de evaluare periodică
+  const [assessmentRows, setAssessmentRows] = useState<AssessmentRow[]>([]);
 
   useEffect(() => {
     const loadReferenceData = async () => {
@@ -94,7 +104,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
 
         // Creează coloanele pentru grupele care au schedule-uri
         // Folosim localStorage pentru a salva ordinea grupurilor
-        const STORAGE_KEY = 'scheduleGroupsOrder';
+        const STORAGE_KEY = 'assessmentScheduleGroupsOrder';
         const savedOrder = localStorage.getItem(STORAGE_KEY);
         let groupOrder: number[] = [];
         
@@ -155,7 +165,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
             groupId: referenceGroup?.id,
           });
 
-          // Populează datele pentru fiecare celulă
+          // Populează datele pentru fiecare celulă (fără săptămâni par/impar)
           const groupCellData: Record<string, CellData> = {};
           for (const schedule of groupSchedules) {
             const key = getCellKey(schedule.day, schedule.hour);
@@ -163,11 +173,6 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
               subject: schedule.subject.name,
               professor: schedule.professor.full_name,
               room: schedule.room.code,
-              oddWeek: schedule.odd_week_subject && schedule.odd_week_professor && schedule.odd_week_room ? {
-                subject: schedule.odd_week_subject.name,
-                professor: schedule.odd_week_professor.full_name,
-                room: schedule.odd_week_room.code,
-              } : undefined,
             };
           }
           newCellData[groupId] = groupCellData;
@@ -215,18 +220,19 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
   }, [showDeleteMenu]);
 
 
+  // Pentru evaluarea periodică, adaugă un rând nou în loc de o grupă
   const handleAddGroup = () => {
-    const newGroupId = `group-${Date.now()}`;
-    const newGroup: GroupColumn = {
-      id: newGroupId,
-      groupName: '',
+    const newRowId = `row-${Date.now()}`;
+    const newRow: AssessmentRow = {
+      id: newRowId,
+      subject: '',
+      groups: [],
+      professors: [],
+      dates: [],
+      times: [],
+      rooms: [],
     };
-    setGroups((prev) => [...prev, newGroup]);
-    // Inițializează datele pentru noua grupă
-    setCellData((prev) => ({
-      ...prev,
-      [newGroupId]: {},
-    }));
+    setAssessmentRows((prev) => [...prev, newRow]);
   };
 
   const handleGroupNameChange = (groupId: string, newName: string) => {
@@ -251,42 +257,13 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
     setModifiedGroups((prev) => new Set(prev).add(groupId));
   };
 
-  // Handler pentru input-urile săptămânii impare
-  const handleOddWeekInputChange = (groupId: string, day: string, hour: string, field: 'subject' | 'professor' | 'room', value: string) => {
-    const key = getCellKey(day, hour);
-    setCellData((prev) => ({
-      ...prev,
-      [groupId]: {
-        ...(prev[groupId] || {}),
-        [key]: {
-          ...(prev[groupId]?.[key] || { subject: '', professor: '', room: '' }),
-          oddWeek: {
-            ...(prev[groupId]?.[key]?.oddWeek || { subject: '', professor: '', room: '' }),
-            [field]: value,
-          },
-        },
-      },
-    }));
-    // Marchează grupa ca modificată
-    setModifiedGroups((prev) => new Set(prev).add(groupId));
-  };
-
-  // Toggle pentru a deschide/închide input-urile săptămânii impare
-  const toggleOddWeekInputs = (groupId: string, day: string, hour: string) => {
-    const cellKey = `${groupId}-${getCellKey(day, hour)}`;
-    setOddWeekInputsOpen((prev) => ({
-      ...prev,
-      [cellKey]: !prev[cellKey],
-    }));
-  };
-
   const handleDeleteClick = () => {
     setShowDeleteMenu((prev) => !prev);
   };
 
   const handleCancel = async () => {
     // Confirmă cu utilizatorul dacă dorește să anuleze modificările
-    const hasChanges = groups.length > 0 || Object.keys(cellData).length > 0;
+    const hasChanges = groups.length > 0 || Object.keys(cellData).length > 0 || assessmentRows.length > 0;
     
     if (hasChanges) {
       const confirmed = window.confirm(
@@ -318,7 +295,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
         filterParams.cycle_type = cycleType;
       }
       
-      // Reîncarcă datele existente din baza de date cu filtrare
+      // Reîncarcă datele existente din baza de date
       const schedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
       
       // Grupează schedule-urile după grup
@@ -359,6 +336,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
 
       setGroups(newGroups);
       setCellData(newCellData);
+      setAssessmentRows([]); // Resetează rândurile de evaluare periodică
       setShowDeleteMenu(false);
       
       setMessage({
@@ -371,6 +349,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
       // Dacă apare o eroare, resetează totuși UI-ul
       setGroups([]);
       setCellData({});
+      setAssessmentRows([]); // Resetează rândurile de evaluare periodică
       setShowDeleteMenu(false);
       setMessage({
         type: 'error',
@@ -393,7 +372,26 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
       setLoading(true);
       // Obține toate schedule-urile pentru această grupă
       const groupCode = group.groupName.trim();
-      const schedules = await scheduleService.getScheduleByGroup(groupCode);
+      
+      // Construiește parametrii de filtrare
+      const filterParams: {
+        academic_year?: number;
+        semester?: string;
+        cycle_type?: string;
+      } = {};
+      
+      if (academicYear !== undefined && academicYear !== null) {
+        filterParams.academic_year = academicYear;
+      }
+      if (period) {
+        filterParams.semester = period;
+      }
+      if (cycleType) {
+        filterParams.cycle_type = cycleType;
+      }
+      
+      const allSchedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
+      const schedules = allSchedules.filter((s) => s.group.code === groupCode);
 
       // Colectează ID-urile disciplinelor, profesorilor și sălilor folosite în aceste schedule-uri
       const subjectIds = new Set(schedules.map((s) => s.subject.id));
@@ -445,7 +443,15 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
         }
       }
 
-      // Doar dacă ștergerea a reușit, actualizează UI-ul (NU șterge grupa din baza de date)
+      // Găsește grupa în baza de date și o șterge
+      const referenceGroup = referenceGroups.find((g) => g.code === groupCode);
+      if (referenceGroup) {
+        await referenceDataService.deleteGroup(referenceGroup.id);
+        // Actualizează lista de grupe de referință
+        setReferenceGroups((prev) => prev.filter((g) => g.id !== referenceGroup.id));
+      }
+
+      // Doar dacă ștergerea a reușit, actualizează UI-ul
       setGroups((prev) => prev.filter((g) => g.id !== groupId));
       setCellData((prev) => {
         const newData = { ...prev };
@@ -455,7 +461,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
       setShowDeleteMenu(false);
       setMessage({
         type: 'success',
-        text: `Toate schedule-urile pentru grupul "${groupCode}" au fost șterse cu succes. Grupa rămâne în baza de date.`,
+        text: `Grupul "${groupCode}" și toate schedule-urile sale au fost șterse cu succes.`,
       });
       setTimeout(() => setMessage(null), 5000);
     } catch (err: any) {
@@ -473,8 +479,26 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
   const handleDeleteAllGroups = async () => {
     try {
       setLoading(true);
+      
+      // Construiește parametrii de filtrare
+      const filterParams: {
+        academic_year?: number;
+        semester?: string;
+        cycle_type?: string;
+      } = {};
+      
+      if (academicYear !== undefined && academicYear !== null) {
+        filterParams.academic_year = academicYear;
+      }
+      if (period) {
+        filterParams.semester = period;
+      }
+      if (cycleType) {
+        filterParams.cycle_type = cycleType;
+      }
+      
       // Obține toate schedule-urile pentru toate grupele
-      const allSchedules = await scheduleService.getAllSchedules();
+      const allSchedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
 
       // Colectează ID-urile disciplinelor, profesorilor și sălilor folosite în toate schedule-urile
       const subjectIds = new Set(allSchedules.map((s) => s.subject.id));
@@ -515,8 +539,20 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
         }
       }
 
-      // NU șterge grupele din baza de date - doar schedule-urile, disciplinele, profesorii și sălile
-      // Grupele rămân în baza de date pentru a putea fi folosite din nou
+      // Șterge toate grupele din baza de date care au fost folosite în grilă
+      const groupsToDelete = groups
+        .filter((g) => g.groupName.trim())
+        .map((g) => {
+          const refGroup = referenceGroups.find((rg) => rg.code === g.groupName.trim());
+          return refGroup?.id;
+        })
+        .filter((id): id is number => id !== undefined);
+
+      await Promise.all(groupsToDelete.map((groupId) => referenceDataService.deleteGroup(groupId)));
+
+      // Actualizează lista de grupe de referință
+      const updatedReferenceGroups = await referenceDataService.getGroups();
+      setReferenceGroups(updatedReferenceGroups);
 
       // Doar dacă ștergerea a reușit, actualizează UI-ul
       setGroups([]);
@@ -524,7 +560,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
       setShowDeleteMenu(false);
       setMessage({
         type: 'success',
-        text: `Toate schedule-urile, disciplinele, profesorii și sălile au fost șterse cu succes. Grupele rămân în baza de date.`,
+        text: `Toate grupele, schedule-urile, disciplinele, profesorii și sălile au fost șterse cu succes.`,
       });
       setTimeout(() => setMessage(null), 5000);
     } catch (err: any) {
@@ -537,18 +573,6 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
     } finally {
       setLoading(false);
     }
-  };
-
-  const findIdByName = (
-    name: string,
-    items: Array<{ id: number; name?: string; full_name?: string; code?: string }>,
-    searchField: 'name' | 'full_name' | 'code' = 'name'
-  ): number | null => {
-    const item = items.find((item) => {
-      const fieldValue = item[searchField];
-      return fieldValue && fieldValue.toLowerCase().trim() === name.toLowerCase().trim();
-    });
-    return item?.id || null;
   };
 
   const handleSave = async () => {
@@ -587,6 +611,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
       setLoading(false);
     }
   };
+  
   return (
     <ScheduleGridContainer>
       <ScheduleTableActions
@@ -618,14 +643,97 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
           {message.text}
         </div>
       )}
-      <ScheduleTable
+      <AssessmentScheduleTable
         groups={groups}
         cellData={cellData}
-        oddWeekInputsOpen={oddWeekInputsOpen}
+        assessmentRows={assessmentRows}
         onGroupNameChange={handleGroupNameChange}
         onInputChange={handleInputChange}
-        onOddWeekInputChange={handleOddWeekInputChange}
-        onToggleOddWeek={toggleOddWeekInputs}
+        onRowChange={(rowId, field, value) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
+          );
+        }}
+        onGroupInRowChange={(rowId, groupIndex, value) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => {
+              if (row.id === rowId) {
+                const newGroups = [...row.groups];
+                newGroups[groupIndex] = value;
+                return { ...row, groups: newGroups };
+              }
+              return row;
+            })
+          );
+        }}
+        onAddGroupToRow={(rowId) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => {
+              if (row.id === rowId) {
+                return {
+                  ...row,
+                  groups: [...row.groups, ''],
+                  professors: [...row.professors, ''],
+                  dates: [...row.dates, ''],
+                  times: [...row.times, ''],
+                  rooms: [...row.rooms, ''],
+                };
+              }
+              return row;
+            })
+          );
+        }}
+        onDeleteRow={(rowId) => {
+          setAssessmentRows((prev) => prev.filter((row) => row.id !== rowId));
+        }}
+        onProfessorInRowChange={(rowId, index, value) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => {
+              if (row.id === rowId) {
+                const newProfessors = [...row.professors];
+                newProfessors[index] = value;
+                return { ...row, professors: newProfessors };
+              }
+              return row;
+            })
+          );
+        }}
+        onDateInRowChange={(rowId, index, value) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => {
+              if (row.id === rowId) {
+                const newDates = [...row.dates];
+                newDates[index] = value;
+                return { ...row, dates: newDates };
+              }
+              return row;
+            })
+          );
+        }}
+        onTimeInRowChange={(rowId, index, value) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => {
+              if (row.id === rowId) {
+                const newTimes = [...row.times];
+                newTimes[index] = value;
+                return { ...row, times: newTimes };
+              }
+              return row;
+            })
+          );
+        }}
+        onRoomInRowChange={(rowId, index, value) => {
+          setAssessmentRows((prev) =>
+            prev.map((row) => {
+              if (row.id === rowId) {
+                const newRooms = [...row.rooms];
+                newRooms[index] = value;
+                return { ...row, rooms: newRooms };
+              }
+              return row;
+            })
+          );
+        }}
       />
     </ScheduleGridContainer>
   );
