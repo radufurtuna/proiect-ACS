@@ -103,7 +103,7 @@ export default function ScheduleTableActions({
             height: '36px',
             opacity: loading ? 0.6 : 1,
           }}
-          title="Salvează"
+          title="Salvare"
           onClick={onSave}
           disabled={loading}
         >

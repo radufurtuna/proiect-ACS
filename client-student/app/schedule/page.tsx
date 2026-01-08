@@ -58,6 +58,25 @@ export default function StudentSchedule() {
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
   const [selectedCycleType, setSelectedCycleType] = useState<string | null>(null);
 
+  // Gestionare buton "back" din browser
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // Când utilizatorul apasă "back", revenim la butoanele de ciclu
+      if (showSchedule) {
+        setShowSchedule(false);
+        setSelectedAcademicYear(null);
+        setSelectedSemester(null);
+        setSelectedCycleType(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [showSchedule]);
+
   // Verificare status conexiune online/offline
   useEffect(() => {
     const updateOnlineStatus = () => {
@@ -505,6 +524,8 @@ export default function StudentSchedule() {
                     setSelectedSemester(period);
                     setSelectedCycleType('F');
                     setShowSchedule(true);
+                    // Adaugă o intrare în istoricul browser-ului pentru a permite butonul "back"
+                    window.history.pushState({ showSchedule: true }, '', window.location.href);
                     // fetchSchedules va fi apelat automat prin useEffect când state-urile se actualizează
                   }}
                 />
@@ -527,6 +548,8 @@ export default function StudentSchedule() {
                     setSelectedSemester(period);
                     setSelectedCycleType('FR');
                     setShowSchedule(true);
+                    // Adaugă o intrare în istoricul browser-ului pentru a permite butonul "back"
+                    window.history.pushState({ showSchedule: true }, '', window.location.href);
                     // fetchSchedules va fi apelat automat prin useEffect când state-urile se actualizează
                   }}
                 />

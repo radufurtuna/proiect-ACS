@@ -9,7 +9,9 @@ import {
 } from '@/lib/api';
 import ScheduleModal from '@/components/admin/ScheduleModal';
 import ScheduleGrid from '@/components/admin/ScheduleGrid';
+import AssessmentScheduleGrid from '@/components/admin/AssessmentScheduleGrid';
 import UserManagement from '@/components/admin/UserManagement';
+import GroupsManagement from '@/components/admin/GroupsManagement';
 import type {
   Group,
   Professor,
@@ -53,6 +55,7 @@ const PERIODS = [
 
 const NAV_ITEMS = [
   { key: 'resources', label: 'Utilizatori' },
+  { key: 'groups', label: 'Grupe' },
 ] as const;
 
 export default function AdminDashboard() {
@@ -75,7 +78,7 @@ export default function AdminDashboard() {
   const [subjectForm, setSubjectForm] = useState<SubjectFormState>({ ...initialSubjectForm });
   const [professorForm, setProfessorForm] = useState<ProfessorFormState>({ ...initialProfessorForm });
   const [roomForm, setRoomForm] = useState<RoomFormState>({ ...initialRoomForm });
-  const [activeView, setActiveView] = useState<'schedule-year1' | 'schedule-year2' | 'schedule-year3' | 'schedule-year4' | 'resources' | 'settings'>('schedule-year1');
+  const [activeView, setActiveView] = useState<'schedule-year1' | 'schedule-year2' | 'schedule-year3' | 'schedule-year4' | 'resources' | 'groups' | 'settings'>('schedule-year1');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<number>(1);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<'F' | 'FR' | null>(null);
@@ -1535,7 +1538,16 @@ export default function AdminDashboard() {
           <ScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} cycleType={selectedCycle || null} />
         )}
 
+        {/* Afișează AssessmentScheduleGrid pentru evaluarea periodică 1 - temporar doar pentru anul 1, frecvență */}
+        {(activeView === 'schedule-year1') &&
+         (selectedSemester === 'assessments1') &&
+         (selectedCycle === 'F') && (
+          <AssessmentScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} cycleType={selectedCycle || null} />
+        )}
+
         {activeView === 'resources' && <UserManagement />}
+
+        {activeView === 'groups' && <GroupsManagement />}
 
         <ScheduleModal
           show={showModal}
