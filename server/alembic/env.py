@@ -18,6 +18,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
+from models.assessment_schedule import AssessmentSchedule
 from models.schedule import Schedule
 from models.user import User
 from models.room import Room

@@ -499,7 +499,7 @@
     </routine>
     <schema id="191" parent="1" name="main">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2025-11-29.18:18:01</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2026-01-19.17:27:35</LastIntrospectionLocalTimestamp>
     </schema>
     <argument id="192" parent="16">
       <ArgumentDirection>R</ArgumentDirection>
@@ -1591,430 +1591,565 @@
       <Position>1</Position>
     </argument>
     <table id="555" parent="191" name="alembic_version"/>
-    <table id="556" parent="191" name="groups"/>
-    <table id="557" parent="191" name="professors"/>
-    <table id="558" parent="191" name="rooms"/>
-    <table id="559" parent="191" name="schedules"/>
-    <table id="560" parent="191" name="sqlite_master">
+    <table id="556" parent="191" name="assessment_schedule_groups"/>
+    <table id="557" parent="191" name="assessment_schedules"/>
+    <table id="558" parent="191" name="groups"/>
+    <table id="559" parent="191" name="professors"/>
+    <table id="560" parent="191" name="rooms"/>
+    <table id="561" parent="191" name="schedules"/>
+    <table id="562" parent="191" name="sqlite_master">
       <System>1</System>
     </table>
-    <table id="561" parent="191" name="subjects"/>
-    <table id="562" parent="191" name="user_groups"/>
-    <table id="563" parent="191" name="users"/>
-    <table id="564" parent="191" name="verification_codes"/>
-    <column id="565" parent="555" name="version_num">
+    <table id="563" parent="191" name="subjects"/>
+    <table id="564" parent="191" name="user_groups"/>
+    <table id="565" parent="191" name="users"/>
+    <table id="566" parent="191" name="verification_codes"/>
+    <column id="567" parent="555" name="version_num">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>VARCHAR(32)|0s</StoredType>
     </column>
-    <index id="566" parent="555" name="sqlite_autoindex_alembic_version_1">
+    <index id="568" parent="555" name="sqlite_autoindex_alembic_version_1">
       <ColNames>version_num</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <Unique>1</Unique>
     </index>
-    <key id="567" parent="555" name="alembic_version_pkc">
+    <key id="569" parent="555" name="alembic_version_pkc">
       <ColNames>version_num</ColNames>
       <Primary>1</Primary>
       <UnderlyingIndexName>sqlite_autoindex_alembic_version_1</UnderlyingIndexName>
     </key>
-    <column id="568" parent="556" name="id">
+    <column id="570" parent="556" name="id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="569" parent="556" name="code">
+    <column id="571" parent="556" name="assessment_schedule_id">
       <NotNull>1</NotNull>
       <Position>2</Position>
-      <StoredType>VARCHAR|0s</StoredType>
-    </column>
-    <column id="570" parent="556" name="year">
-      <Position>3</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="571" parent="556" name="faculty">
+    <column id="572" parent="556" name="group_name">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="573" parent="556" name="professor_name">
+      <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="572" parent="556" name="specialization">
+    <column id="574" parent="556" name="assessment_date">
+      <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <index id="573" parent="556" name="ix_groups_code">
-      <ColNames>code</ColNames>
-      <Unique>1</Unique>
-    </index>
-    <index id="574" parent="556" name="sqlite_autoindex_groups_1">
-      <ColNames>code</ColNames>
-      <NameSurrogate>1</NameSurrogate>
-      <Unique>1</Unique>
-    </index>
-    <index id="575" parent="556" name="ix_groups_id">
-      <ColNames>id</ColNames>
-    </index>
-    <key id="576" parent="556">
-      <ColNames>id</ColNames>
-      <Primary>1</Primary>
-      <UnderlyingIndexName>ix_groups_id</UnderlyingIndexName>
-    </key>
-    <key id="577" parent="556" name="uq_groups_code">
-      <ColNames>code</ColNames>
-      <UnderlyingIndexName>sqlite_autoindex_groups_1</UnderlyingIndexName>
-    </key>
-    <column id="578" parent="557" name="id">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="579" parent="557" name="full_name">
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-      <StoredType>VARCHAR|0s</StoredType>
-    </column>
-    <column id="580" parent="557" name="department">
-      <Position>3</Position>
-      <StoredType>VARCHAR|0s</StoredType>
-    </column>
-    <column id="581" parent="557" name="email">
-      <Position>4</Position>
-      <StoredType>VARCHAR|0s</StoredType>
-    </column>
-    <index id="582" parent="557" name="sqlite_autoindex_professors_1">
-      <ColNames>email</ColNames>
-      <NameSurrogate>1</NameSurrogate>
-      <Unique>1</Unique>
-    </index>
-    <index id="583" parent="557" name="ix_professors_id">
-      <ColNames>id</ColNames>
-    </index>
-    <index id="584" parent="557" name="ix_professors_full_name">
-      <ColNames>full_name</ColNames>
-    </index>
-    <key id="585" parent="557">
-      <ColNames>id</ColNames>
-      <Primary>1</Primary>
-      <UnderlyingIndexName>ix_professors_id</UnderlyingIndexName>
-    </key>
-    <key id="586" parent="557" name="uq_professors_email">
-      <ColNames>email</ColNames>
-      <UnderlyingIndexName>sqlite_autoindex_professors_1</UnderlyingIndexName>
-    </key>
-    <key id="587" parent="557">
-      <ColNames>email</ColNames>
-      <UnderlyingIndexName>sqlite_autoindex_professors_1</UnderlyingIndexName>
-    </key>
-    <column id="588" parent="558" name="id">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="589" parent="558" name="code">
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-      <StoredType>VARCHAR|0s</StoredType>
-    </column>
-    <column id="590" parent="558" name="building">
-      <Position>3</Position>
-      <StoredType>VARCHAR|0s</StoredType>
-    </column>
-    <column id="591" parent="558" name="capacity">
-      <Position>4</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <index id="592" parent="558" name="ix_rooms_code">
-      <ColNames>code</ColNames>
-      <Unique>1</Unique>
-    </index>
-    <index id="593" parent="558" name="ix_rooms_id">
-      <ColNames>id</ColNames>
-    </index>
-    <key id="594" parent="558">
-      <ColNames>id</ColNames>
-      <Primary>1</Primary>
-      <UnderlyingIndexName>ix_rooms_id</UnderlyingIndexName>
-    </key>
-    <column id="595" parent="559" name="id">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="596" parent="559" name="group_id">
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="597" parent="559" name="subject_id">
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="598" parent="559" name="professor_id">
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="599" parent="559" name="room_id">
-      <NotNull>1</NotNull>
-      <Position>5</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="600" parent="559" name="day">
+    <column id="575" parent="556" name="assessment_time">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="601" parent="559" name="hour">
+    <column id="576" parent="556" name="room_code">
       <NotNull>1</NotNull>
       <Position>7</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="602" parent="559" name="session_type">
+    <foreign-key id="577" parent="556">
+      <ColNames>assessment_schedule_id</ColNames>
+      <OnDelete>cascade</OnDelete>
+      <RefColNames>id</RefColNames>
+      <RefTableName>assessment_schedules</RefTableName>
+    </foreign-key>
+    <index id="578" parent="556" name="ix_assessment_schedule_groups_id">
+      <ColNames>id</ColNames>
+    </index>
+    <index id="579" parent="556" name="ix_assessment_schedule_groups_assessment_schedule_id">
+      <ColNames>assessment_schedule_id</ColNames>
+    </index>
+    <key id="580" parent="556">
+      <ColNames>id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>ix_assessment_schedule_groups_id</UnderlyingIndexName>
+    </key>
+    <column id="581" parent="557" name="id">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="582" parent="557" name="subject">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="583" parent="557" name="groups_composition">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="584" parent="557" name="professor_name">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="585" parent="557" name="assessment_date">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="586" parent="557" name="assessment_time">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="587" parent="557" name="room_code">
+      <NotNull>1</NotNull>
+      <Position>7</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="588" parent="557" name="academic_year">
       <NotNull>1</NotNull>
       <Position>8</Position>
-      <StoredType>VARCHAR(7)|0s</StoredType>
+      <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="603" parent="559" name="status">
+    <column id="589" parent="557" name="semester">
       <NotNull>1</NotNull>
       <Position>9</Position>
-      <StoredType>VARCHAR(8)|0s</StoredType>
+      <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="604" parent="559" name="notes">
+    <column id="590" parent="557" name="cycle_type">
       <Position>10</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="605" parent="559" name="version">
-      <NotNull>1</NotNull>
-      <Position>11</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <foreign-key id="606" parent="559">
-      <ColNames>group_id</ColNames>
-      <RefColNames>id</RefColNames>
-      <RefTableName>groups</RefTableName>
-    </foreign-key>
-    <foreign-key id="607" parent="559">
-      <ColNames>subject_id</ColNames>
-      <RefColNames>id</RefColNames>
-      <RefTableName>subjects</RefTableName>
-    </foreign-key>
-    <foreign-key id="608" parent="559">
-      <ColNames>professor_id</ColNames>
-      <RefColNames>id</RefColNames>
-      <RefTableName>professors</RefTableName>
-    </foreign-key>
-    <foreign-key id="609" parent="559">
-      <ColNames>room_id</ColNames>
-      <RefColNames>id</RefColNames>
-      <RefTableName>rooms</RefTableName>
-    </foreign-key>
-    <index id="610" parent="559" name="ix_schedules_id">
+    <index id="591" parent="557" name="ix_assessment_schedules_id">
       <ColNames>id</ColNames>
     </index>
-    <key id="611" parent="559">
+    <key id="592" parent="557">
       <ColNames>id</ColNames>
       <Primary>1</Primary>
-      <UnderlyingIndexName>ix_schedules_id</UnderlyingIndexName>
+      <UnderlyingIndexName>ix_assessment_schedules_id</UnderlyingIndexName>
     </key>
-    <column id="612" parent="560" name="type">
-      <Position>1</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="613" parent="560" name="name">
-      <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="614" parent="560" name="tbl_name">
-      <Position>3</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="615" parent="560" name="rootpage">
-      <Position>4</Position>
-      <StoredType>INT|0s</StoredType>
-    </column>
-    <column id="616" parent="560" name="sql">
-      <Position>5</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="617" parent="561" name="id">
+    <column id="593" parent="558" name="id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="618" parent="561" name="name">
+    <column id="594" parent="558" name="code">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="619" parent="561" name="code">
-      <NotNull>1</NotNull>
+    <column id="595" parent="558" name="year">
       <Position>3</Position>
-      <StoredType>VARCHAR|0s</StoredType>
+      <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="620" parent="561" name="semester">
+    <column id="596" parent="558" name="faculty">
       <Position>4</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <index id="621" parent="561" name="ix_subjects_code">
+    <column id="597" parent="558" name="specialization">
+      <Position>5</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <index id="598" parent="558" name="ix_groups_code">
       <ColNames>code</ColNames>
       <Unique>1</Unique>
     </index>
-    <index id="622" parent="561" name="sqlite_autoindex_subjects_1">
+    <index id="599" parent="558" name="sqlite_autoindex_groups_1">
       <ColNames>code</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <Unique>1</Unique>
     </index>
-    <index id="623" parent="561" name="ix_subjects_id">
+    <index id="600" parent="558" name="ix_groups_id">
       <ColNames>id</ColNames>
     </index>
-    <index id="624" parent="561" name="ix_subjects_name">
-      <ColNames>name</ColNames>
-    </index>
-    <key id="625" parent="561">
+    <key id="601" parent="558">
       <ColNames>id</ColNames>
       <Primary>1</Primary>
-      <UnderlyingIndexName>ix_subjects_id</UnderlyingIndexName>
+      <UnderlyingIndexName>ix_groups_id</UnderlyingIndexName>
     </key>
-    <key id="626" parent="561" name="uq_subjects_code">
+    <key id="602" parent="558" name="uq_groups_code">
       <ColNames>code</ColNames>
-      <UnderlyingIndexName>sqlite_autoindex_subjects_1</UnderlyingIndexName>
+      <UnderlyingIndexName>sqlite_autoindex_groups_1</UnderlyingIndexName>
     </key>
-    <column id="627" parent="562" name="id">
+    <column id="603" parent="559" name="id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="628" parent="562" name="user_id">
+    <column id="604" parent="559" name="full_name">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="605" parent="559" name="department">
+      <Position>3</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="606" parent="559" name="email">
+      <Position>4</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <index id="607" parent="559" name="sqlite_autoindex_professors_1">
+      <ColNames>email</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <index id="608" parent="559" name="ix_professors_id">
+      <ColNames>id</ColNames>
+    </index>
+    <index id="609" parent="559" name="ix_professors_full_name">
+      <ColNames>full_name</ColNames>
+    </index>
+    <key id="610" parent="559">
+      <ColNames>id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>ix_professors_id</UnderlyingIndexName>
+    </key>
+    <key id="611" parent="559" name="uq_professors_email">
+      <ColNames>email</ColNames>
+      <UnderlyingIndexName>sqlite_autoindex_professors_1</UnderlyingIndexName>
+    </key>
+    <key id="612" parent="559">
+      <ColNames>email</ColNames>
+      <UnderlyingIndexName>sqlite_autoindex_professors_1</UnderlyingIndexName>
+    </key>
+    <column id="613" parent="560" name="id">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="614" parent="560" name="code">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="615" parent="560" name="building">
+      <Position>3</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="616" parent="560" name="capacity">
+      <Position>4</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <index id="617" parent="560" name="ix_rooms_code">
+      <ColNames>code</ColNames>
+      <Unique>1</Unique>
+    </index>
+    <index id="618" parent="560" name="ix_rooms_id">
+      <ColNames>id</ColNames>
+    </index>
+    <key id="619" parent="560">
+      <ColNames>id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>ix_rooms_id</UnderlyingIndexName>
+    </key>
+    <column id="620" parent="561" name="id">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="621" parent="561" name="group_id">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="629" parent="562" name="group_id">
+    <column id="622" parent="561" name="subject_id">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <foreign-key id="630" parent="562">
+    <column id="623" parent="561" name="professor_id">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="624" parent="561" name="room_id">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="625" parent="561" name="day">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="626" parent="561" name="hour">
+      <NotNull>1</NotNull>
+      <Position>7</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="627" parent="561" name="session_type">
+      <NotNull>1</NotNull>
+      <Position>8</Position>
+      <StoredType>VARCHAR(7)|0s</StoredType>
+    </column>
+    <column id="628" parent="561" name="status">
+      <NotNull>1</NotNull>
+      <Position>9</Position>
+      <StoredType>VARCHAR(8)|0s</StoredType>
+    </column>
+    <column id="629" parent="561" name="notes">
+      <Position>10</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="630" parent="561" name="version">
+      <NotNull>1</NotNull>
+      <Position>11</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="631" parent="561" name="odd_week_subject_id">
+      <Position>12</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="632" parent="561" name="odd_week_professor_id">
+      <Position>13</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="633" parent="561" name="odd_week_room_id">
+      <Position>14</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="634" parent="561" name="academic_year">
+      <Position>15</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="635" parent="561" name="semester">
+      <Position>16</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="636" parent="561" name="cycle_type">
+      <Position>17</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <foreign-key id="637" parent="561">
+      <ColNames>group_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>groups</RefTableName>
+    </foreign-key>
+    <foreign-key id="638" parent="561">
+      <ColNames>subject_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>subjects</RefTableName>
+    </foreign-key>
+    <foreign-key id="639" parent="561">
+      <ColNames>professor_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>professors</RefTableName>
+    </foreign-key>
+    <foreign-key id="640" parent="561">
+      <ColNames>room_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>rooms</RefTableName>
+    </foreign-key>
+    <index id="641" parent="561" name="ix_schedules_id">
+      <ColNames>id</ColNames>
+    </index>
+    <key id="642" parent="561">
+      <ColNames>id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>ix_schedules_id</UnderlyingIndexName>
+    </key>
+    <column id="643" parent="562" name="type">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="644" parent="562" name="name">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="645" parent="562" name="tbl_name">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="646" parent="562" name="rootpage">
+      <Position>4</Position>
+      <StoredType>INT|0s</StoredType>
+    </column>
+    <column id="647" parent="562" name="sql">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="648" parent="563" name="id">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="649" parent="563" name="name">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="650" parent="563" name="code">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <column id="651" parent="563" name="semester">
+      <Position>4</Position>
+      <StoredType>VARCHAR|0s</StoredType>
+    </column>
+    <index id="652" parent="563" name="ix_subjects_code">
+      <ColNames>code</ColNames>
+      <Unique>1</Unique>
+    </index>
+    <index id="653" parent="563" name="sqlite_autoindex_subjects_1">
+      <ColNames>code</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <Unique>1</Unique>
+    </index>
+    <index id="654" parent="563" name="ix_subjects_id">
+      <ColNames>id</ColNames>
+    </index>
+    <index id="655" parent="563" name="ix_subjects_name">
+      <ColNames>name</ColNames>
+    </index>
+    <key id="656" parent="563">
+      <ColNames>id</ColNames>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>ix_subjects_id</UnderlyingIndexName>
+    </key>
+    <key id="657" parent="563" name="uq_subjects_code">
+      <ColNames>code</ColNames>
+      <UnderlyingIndexName>sqlite_autoindex_subjects_1</UnderlyingIndexName>
+    </key>
+    <column id="658" parent="564" name="id">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="659" parent="564" name="user_id">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="660" parent="564" name="group_id">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <foreign-key id="661" parent="564">
       <ColNames>user_id</ColNames>
       <OnDelete>cascade</OnDelete>
       <RefColNames>id</RefColNames>
       <RefTableName>users</RefTableName>
     </foreign-key>
-    <foreign-key id="631" parent="562">
+    <foreign-key id="662" parent="564">
       <ColNames>group_id</ColNames>
       <RefColNames>id</RefColNames>
       <RefTableName>groups</RefTableName>
     </foreign-key>
-    <index id="632" parent="562" name="sqlite_autoindex_user_groups_1">
+    <index id="663" parent="564" name="sqlite_autoindex_user_groups_1">
       <ColNames>user_id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <Unique>1</Unique>
     </index>
-    <index id="633" parent="562" name="ix_user_groups_id">
+    <index id="664" parent="564" name="ix_user_groups_id">
       <ColNames>id</ColNames>
     </index>
-    <key id="634" parent="562">
+    <key id="665" parent="564">
       <ColNames>id</ColNames>
       <Primary>1</Primary>
       <UnderlyingIndexName>ix_user_groups_id</UnderlyingIndexName>
     </key>
-    <key id="635" parent="562" name="uq_user_groups_user_id">
+    <key id="666" parent="564" name="uq_user_groups_user_id">
       <ColNames>user_id</ColNames>
       <UnderlyingIndexName>sqlite_autoindex_user_groups_1</UnderlyingIndexName>
     </key>
-    <key id="636" parent="562">
+    <key id="667" parent="564">
       <ColNames>user_id</ColNames>
       <UnderlyingIndexName>sqlite_autoindex_user_groups_1</UnderlyingIndexName>
     </key>
-    <column id="637" parent="563" name="id">
+    <column id="668" parent="565" name="id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="638" parent="563" name="username">
+    <column id="669" parent="565" name="username">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="639" parent="563" name="password_hash">
+    <column id="670" parent="565" name="password_hash">
       <Position>3</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="640" parent="563" name="role">
+    <column id="671" parent="565" name="role">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>VARCHAR(9)|0s</StoredType>
     </column>
-    <column id="641" parent="563" name="is_active">
+    <column id="672" parent="565" name="is_active">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>BOOLEAN|0s</StoredType>
     </column>
-    <index id="642" parent="563" name="ix_users_username">
+    <index id="673" parent="565" name="ix_users_username">
       <ColNames>username</ColNames>
       <Unique>1</Unique>
     </index>
-    <index id="643" parent="563" name="ix_users_id">
+    <index id="674" parent="565" name="ix_users_id">
       <ColNames>id</ColNames>
     </index>
-    <key id="644" parent="563">
+    <key id="675" parent="565">
       <ColNames>id</ColNames>
       <Primary>1</Primary>
       <UnderlyingIndexName>ix_users_id</UnderlyingIndexName>
     </key>
-    <column id="645" parent="564" name="id">
+    <column id="676" parent="566" name="id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="646" parent="564" name="user_id">
+    <column id="677" parent="566" name="user_id">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="647" parent="564" name="code">
+    <column id="678" parent="566" name="code">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>VARCHAR(6)|0s</StoredType>
     </column>
-    <column id="648" parent="564" name="email">
+    <column id="679" parent="566" name="email">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>VARCHAR|0s</StoredType>
     </column>
-    <column id="649" parent="564" name="created_at">
+    <column id="680" parent="566" name="created_at">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>DATETIME|0s</StoredType>
     </column>
-    <column id="650" parent="564" name="expires_at">
+    <column id="681" parent="566" name="expires_at">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>DATETIME|0s</StoredType>
     </column>
-    <column id="651" parent="564" name="used">
+    <column id="682" parent="566" name="used">
       <NotNull>1</NotNull>
       <Position>7</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="652" parent="564" name="verified">
+    <column id="683" parent="566" name="verified">
       <NotNull>1</NotNull>
       <Position>8</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <foreign-key id="653" parent="564">
+    <foreign-key id="684" parent="566">
       <ColNames>user_id</ColNames>
       <RefColNames>id</RefColNames>
       <RefTableName>users</RefTableName>
     </foreign-key>
-    <index id="654" parent="564" name="ix_verification_codes_id">
+    <index id="685" parent="566" name="ix_verification_codes_id">
       <ColNames>id</ColNames>
     </index>
-    <index id="655" parent="564" name="ix_verification_codes_user_id">
+    <index id="686" parent="566" name="ix_verification_codes_user_id">
       <ColNames>user_id</ColNames>
     </index>
-    <index id="656" parent="564" name="ix_verification_codes_code">
+    <index id="687" parent="566" name="ix_verification_codes_code">
       <ColNames>code</ColNames>
     </index>
-    <key id="657" parent="564">
+    <key id="688" parent="566">
       <ColNames>id</ColNames>
       <Primary>1</Primary>
       <UnderlyingIndexName>ix_verification_codes_id</UnderlyingIndexName>

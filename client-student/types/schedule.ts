@@ -70,3 +70,17 @@ export interface ScheduleCreate {
 
 export type ScheduleUpdate = Partial<ScheduleCreate>;
 
+// Tipuri pentru evaluările periodice
+export interface AssessmentSchedule {
+  id: number;
+  subject: string;
+  groups_composition: string;
+  professor_name: string;
+  assessment_date: string;
+  assessment_time: string;
+  room_code: string;
+  academic_year: number;
+  semester: string;
+  cycle_type?: string | null;
+}
+

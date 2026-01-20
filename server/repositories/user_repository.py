@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from models.user import User, UserRole
 from models.user_group import UserGroup
-#from core.security import get_password_hash
+from core.security import get_password_hash
 
 
 class UserRepository:

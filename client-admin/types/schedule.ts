@@ -70,3 +70,30 @@ export interface ScheduleCreate {
 
 export type ScheduleUpdate = Partial<ScheduleCreate>;
 
+// Tipuri pentru evaluările periodice (format backend - baza de date)
+export interface AssessmentSchedule {
+  id: number;
+  subject: string; // Numele disciplinei (scris manual)
+  groups_composition: string; // Componența seriei - grupele separate prin virgulă (ex: "TI-221, TI-222, TI-223")
+  professor_name: string; // Cadrul didactic titular (scris manual)
+  assessment_date: string; // Data evaluării (scris manual)
+  assessment_time: string; // Ora evaluării (scris manual)
+  room_code: string; // Codul sălii (scris manual)
+  academic_year: number; // Anul academic (1, 2, 3, 4)
+  semester: string; // "assessments1" sau "assessments2"
+  cycle_type?: string | null; // "F" sau "FR"
+}
+
+export interface AssessmentScheduleCreate {
+  subject: string;
+  groups_composition: string;
+  professor_name: string;
+  assessment_date: string;
+  assessment_time: string;
+  room_code: string;
+  academic_year: number;
+  semester: string;
+  cycle_type?: string | null;
+}
+
+export type AssessmentScheduleUpdate = Partial<AssessmentScheduleCreate>;

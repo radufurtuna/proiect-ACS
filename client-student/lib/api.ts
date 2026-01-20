@@ -14,6 +14,7 @@ import type {
   ScheduleCreate,
   ScheduleUpdate,
   Subject,
+  AssessmentSchedule,
 } from '@/types/schedule';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -123,6 +124,35 @@ export const authService = {
       return !!localStorage.getItem('token');
     }
     return false;
+  },
+
+  // Extrage email-ul din token-ul JWT
+  getUserEmail: (): string | null => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
+    }
+    try {
+      // JWT format: header.payload.signature
+      // Decodăm doar payload-ul (partea 2)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return null;
+      }
+      const payload = parts[1];
+      // Base64URL decode
+      const decoded = JSON.parse(
+        atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+      );
+      // Email-ul este în câmpul "sub" (subject)
+      return decoded.sub || null;
+    } catch (error) {
+      console.error('Eroare la decodarea token-ului:', error);
+      return null;
+    }
   },
 };
 
@@ -279,6 +309,18 @@ export const userService = {
   },
   deleteUser: async (id: number): Promise<void> => {
     await api.delete(`/users/${id}`);
+  },
+};
+
+// Serviciu pentru evaluările periodice
+export const assessmentScheduleService = {
+  getAllAssessmentSchedules: async (params?: {
+    academic_year?: number;
+    semester?: string;
+    cycle_type?: string;
+  }): Promise<AssessmentSchedule[]> => {
+    const response = await api.get<AssessmentSchedule[]>('/assessment-schedules/', { params });
+    return response.data;
   },
 };
 

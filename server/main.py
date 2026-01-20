@@ -7,6 +7,7 @@ import os
 load_dotenv()
 
 from routers import (
+    assessment_schedule_router,
     auth_router,
     group_router,
     orar_router,
@@ -40,6 +41,7 @@ app.add_middleware(
 
 # Include routerele
 app.include_router(auth_router.router)
+app.include_router(assessment_schedule_router.router)
 app.include_router(group_router.router)
 app.include_router(professor_router.router)
 app.include_router(subject_router.router)

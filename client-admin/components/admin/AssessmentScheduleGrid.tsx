@@ -6,6 +6,7 @@ import type { Schedule, Group, Subject, Professor, Room } from '@/types/schedule
 import { DAYS, TIME_SLOTS, type CellData, type GroupColumn, type ScheduleGridProps } from './ScheduleGrid.types';
 import { getCellKey, findIdByName } from './ScheduleGrid.utils';
 import { saveSchedule } from './ScheduleGrid.save';
+import { saveAssessmentSchedule, loadAssessmentSchedules } from './AssessmentScheduleGrid.save';
 import AssessmentScheduleGridCell from './AssessmentScheduleGridCell';
 import AssessmentScheduleTable from './AssessmentScheduleTable';
 import ScheduleTableActions from './ScheduleTableActions';
@@ -59,148 +60,36 @@ export default function AssessmentScheduleGrid({ academicYear = 1, period = null
     loadReferenceData();
   }, []);
 
-  // Încarcă schedule-urile existente și populează grila (doar la montarea componentei)
+  // Încarcă evaluările periodice existente (doar pentru assessmentRows)
   useEffect(() => {
-    const loadExistingSchedules = async () => {
-      // Verifică dacă datele au fost deja încărcate sau dacă grila are deja date
-      if (hasLoadedSchedules.current || groups.length > 0) {
+    const loadExistingAssessmentSchedules = async () => {
+      // Verifică dacă datele au fost deja încărcate
+      if (hasLoadedSchedules.current || assessmentRows.length > 0) {
         return;
       }
 
-      // Verifică dacă toate datele de referință sunt încărcate
-      if (referenceGroups.length === 0 || subjects.length === 0 || professors.length === 0 || rooms.length === 0) {
+      // Verifică dacă avem parametrii necesari
+      if (!period || !academicYear) {
         return;
       }
 
       try {
-        // Construiește parametrii de filtrare
-        const filterParams: {
-          academic_year?: number;
-          semester?: string;
-          cycle_type?: string;
-        } = {};
-        
-        if (academicYear !== undefined && academicYear !== null) {
-          filterParams.academic_year = academicYear;
-        }
-        if (period) {
-          filterParams.semester = period;
-        }
-        if (cycleType) {
-          filterParams.cycle_type = cycleType;
-        }
-        
-        const schedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
-        
-        // Grupează schedule-urile după grup
-        const schedulesByGroup = new Map<string, Schedule[]>();
-        for (const schedule of schedules) {
-          const groupCode = schedule.group.code;
-          if (!schedulesByGroup.has(groupCode)) {
-            schedulesByGroup.set(groupCode, []);
-          }
-          schedulesByGroup.get(groupCode)!.push(schedule);
-        }
-
-        // Creează coloanele pentru grupele care au schedule-uri
-        // Folosim localStorage pentru a salva ordinea grupurilor
-        const STORAGE_KEY = 'assessmentScheduleGroupsOrder';
-        const savedOrder = localStorage.getItem(STORAGE_KEY);
-        let groupOrder: number[] = [];
-        
-        if (savedOrder) {
-          try {
-            groupOrder = JSON.parse(savedOrder);
-          } catch (e) {
-            console.error('Eroare la citirea ordinii grupurilor din localStorage:', e);
-          }
-        }
-
-        const groupsWithData: Array<{ groupCode: string; groupSchedules: Schedule[]; referenceGroup?: Group }> = [];
-        
-        for (const [groupCode, groupSchedules] of schedulesByGroup.entries()) {
-          const referenceGroup = referenceGroups.find((rg) => rg.code === groupCode);
-          groupsWithData.push({
-            groupCode,
-            groupSchedules,
-            referenceGroup,
-          });
-        }
-
-        // Sortăm după ordinea salvată, apoi după groupId
-        groupsWithData.sort((a, b) => {
-          const idA = a.referenceGroup?.id;
-          const idB = b.referenceGroup?.id;
-          
-          if (!idA || !idB) {
-            const fallbackA = idA ?? Infinity;
-            const fallbackB = idB ?? Infinity;
-            return fallbackA - fallbackB;
-          }
-          
-          const indexA = groupOrder.indexOf(idA);
-          const indexB = groupOrder.indexOf(idB);
-          
-          // Dacă ambele sunt în ordinea salvată, sortăm după poziția lor
-          if (indexA !== -1 && indexB !== -1) {
-            return indexA - indexB;
-          }
-          
-          // Dacă doar unul este în ordinea salvată, îl punem primul
-          if (indexA !== -1) return -1;
-          if (indexB !== -1) return 1;
-          
-          // Dacă niciunul nu este în ordinea salvată, sortăm după ID
-          return idA - idB;
-        });
-
-        const newGroups: GroupColumn[] = [];
-        const newCellData: Record<string, Record<string, CellData>> = {};
-
-        for (const { groupCode, groupSchedules, referenceGroup } of groupsWithData) {
-          const groupId = `group-${groupCode}-${Date.now()}`;
-          newGroups.push({
-            id: groupId,
-            groupName: groupCode,
-            groupId: referenceGroup?.id,
-          });
-
-          // Populează datele pentru fiecare celulă (fără săptămâni par/impar)
-          const groupCellData: Record<string, CellData> = {};
-          for (const schedule of groupSchedules) {
-            const key = getCellKey(schedule.day, schedule.hour);
-            groupCellData[key] = {
-              subject: schedule.subject.name,
-              professor: schedule.professor.full_name,
-              room: schedule.room.code,
-            };
-          }
-          newCellData[groupId] = groupCellData;
-        }
-
-        // Salvează ordinea grupurilor în localStorage
-        const currentOrder = newGroups
-          .map((g) => g.groupId)
-          .filter((id): id is number => id !== undefined);
-        if (currentOrder.length > 0) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentOrder));
-        }
-
-        setGroups(newGroups);
-        setCellData(newCellData);
+        const loadedRows = await loadAssessmentSchedules(academicYear, period, cycleType);
+        if (loadedRows.length > 0) {
+          setAssessmentRows(loadedRows);
         hasLoadedSchedules.current = true;
+        }
       } catch (err) {
-        console.error('Eroare la încărcarea schedule-urilor existente:', err);
+        console.error('Eroare la încărcarea evaluărilor periodice:', err);
       }
     };
 
-    // Așteaptă să se încarce datele de referință înainte de a încărca schedule-urile
-    // Verifică dacă toate datele de referință sunt încărcate și dacă nu am încărcat deja schedule-urile
-    if (referenceGroups.length > 0 && subjects.length > 0 && professors.length > 0 && rooms.length > 0) {
-      loadExistingSchedules();
+    // Încarcă evaluările periodice dacă avem parametrii
+    if (period && academicYear) {
+      loadExistingAssessmentSchedules();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [referenceGroups.length, subjects.length, professors.length, rooms.length]);
+  }, [period, academicYear, cycleType]);
 
   // Închide meniul când se face click în afara lui
   useEffect(() => {
@@ -580,33 +469,26 @@ export default function AssessmentScheduleGrid({ academicYear = 1, period = null
     setMessage(null);
 
     try {
-      await saveSchedule({
-        groups,
-        cellData,
-        referenceGroups,
-        subjects,
-        professors,
-        rooms,
-        modifiedGroups,
+      // Verifică dacă avem parametrii necesari
+      if (!period || academicYear === undefined || academicYear === null) {
+        setMessage({
+          type: 'error',
+          text: 'Lipsește anul academic sau perioada. Verifică selecțiile.',
+        });
+        return;
+      }
+
+      // Salvează evaluările periodice (assessmentRows)
+      await saveAssessmentSchedule({
+        assessmentRows,
         academicYear,
         semester: period,
         cycleType,
-        setReferenceGroups,
-        setGroups,
-        setSubjects,
-        setProfessors,
-        setRooms,
-        setCellData,
         setMessage,
-        setModifiedGroups,
       });
     } catch (err: any) {
-      if (err.message !== 'Nu există date de salvat') {
-        setMessage({
-          type: 'error',
-          text: err.response?.data?.detail || err.message || 'Eroare la salvare în baza de date',
-        });
-      }
+      // Eroarea este deja setată în saveAssessmentSchedule
+      console.error('Eroare la salvare:', err);
     } finally {
       setLoading(false);
     }

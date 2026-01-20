@@ -80,6 +80,7 @@ export default function AdminDashboard() {
   const [roomForm, setRoomForm] = useState<RoomFormState>({ ...initialRoomForm });
   const [activeView, setActiveView] = useState<'schedule-year1' | 'schedule-year2' | 'schedule-year3' | 'schedule-year4' | 'resources' | 'groups' | 'settings'>('schedule-year1');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<number>(1);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<'F' | 'FR' | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -165,6 +166,12 @@ export default function AdminDashboard() {
         clearTimeout(closeTimeoutRefFR.current);
       }
     };
+  }, []);
+
+  // Obține email-ul utilizatorului din token
+  useEffect(() => {
+    const email = authService.getUserEmail();
+    setUserEmail(email);
   }, []);
 
   const uniqueGroups = useMemo(
@@ -1344,20 +1351,32 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '500',
-          }}
-        >
-          Logout
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {userEmail && (
+            <span style={{ 
+              color: 'white', 
+              fontSize: '0.9rem',
+              fontWeight: '400',
+              opacity: 0.9
+            }}>
+              {userEmail}
+            </span>
+          )}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: '500',
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
       {/* Submeniu cu perioadele - apare la hover */}

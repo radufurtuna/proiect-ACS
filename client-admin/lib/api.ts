@@ -7,6 +7,9 @@ import type {
   UserUpdateInput,
 } from '@/types/auth';
 import type {
+  AssessmentSchedule,
+  AssessmentScheduleCreate,
+  AssessmentScheduleUpdate,
   Group,
   Professor,
   Room,
@@ -123,6 +126,35 @@ export const authService = {
       return !!localStorage.getItem('token');
     }
     return false;
+  },
+
+  // Extrage email-ul din token-ul JWT
+  getUserEmail: (): string | null => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
+    }
+    try {
+      // JWT format: header.payload.signature
+      // Decodăm doar payload-ul (partea 2)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return null;
+      }
+      const payload = parts[1];
+      // Base64URL decode
+      const decoded = JSON.parse(
+        atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+      );
+      // Email-ul este în câmpul "sub" (subject)
+      return decoded.sub || null;
+    } catch (error) {
+      console.error('Eroare la decodarea token-ului:', error);
+      return null;
+    }
   },
 };
 
@@ -279,6 +311,45 @@ export const userService = {
   },
   deleteUser: async (id: number): Promise<void> => {
     await api.delete(`/users/${id}`);
+  },
+};
+
+// Serviciu pentru evaluările periodice
+export const assessmentScheduleService = {
+  // Obține toate evaluările periodice, opțional filtrate
+  getAllAssessmentSchedules: async (params?: {
+    academic_year?: number;
+    semester?: string;
+    cycle_type?: string;
+  }): Promise<AssessmentSchedule[]> => {
+    const response = await api.get<AssessmentSchedule[]>('/assessment-schedules/', { params });
+    return response.data;
+  },
+
+  // Obține o evaluare periodică după ID
+  getAssessmentScheduleById: async (id: number): Promise<AssessmentSchedule> => {
+    const response = await api.get<AssessmentSchedule>(`/assessment-schedules/${id}`);
+    return response.data;
+  },
+
+  // Creează o nouă evaluare periodică
+  createAssessmentSchedule: async (data: AssessmentScheduleCreate): Promise<AssessmentSchedule> => {
+    const response = await api.post<AssessmentSchedule>('/assessment-schedules/', data);
+    return response.data;
+  },
+
+  // Actualizează o evaluare periodică
+  updateAssessmentSchedule: async (
+    id: number,
+    data: AssessmentScheduleUpdate
+  ): Promise<AssessmentSchedule> => {
+    const response = await api.put<AssessmentSchedule>(`/assessment-schedules/${id}`, data);
+    return response.data;
+  },
+
+  // Șterge o evaluare periodică
+  deleteAssessmentSchedule: async (id: number): Promise<void> => {
+    await api.delete(`/assessment-schedules/${id}`);
   },
 };
 

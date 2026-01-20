@@ -2,7 +2,7 @@
 
 import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService, scheduleService } from '@/lib/api';
+import { authService, scheduleService, assessmentScheduleService } from '@/lib/api';
 import { loadScheduleCache, saveScheduleCache } from '@/lib/cache';
 import { exportScheduleToPdf } from '@/lib/exportPdf';
 import { exportScheduleToExcel } from '@/lib/exportExcel';
@@ -11,8 +11,9 @@ import CycleFButton from '@/components/student/CycleFButton';
 import CycleFRButton from '@/components/student/CycleFRButton';
 import CycleMasteratButton from '@/components/student/CycleMasteratButton';
 import ScheduleTable from '@/components/student/ScheduleTable';
+import AssessmentScheduleTable from '@/components/student/AssessmentScheduleTable';
 import { scheduleWebSocket } from '@/lib/websocket';
-import type { Schedule } from '@/types/schedule';
+import type { Schedule, AssessmentSchedule } from '@/types/schedule';
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
   course: 'Curs',
@@ -42,6 +43,7 @@ export default function StudentSchedule() {
   const router = useRouter();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+  const [assessmentSchedules, setAssessmentSchedules] = useState<AssessmentSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
@@ -57,6 +59,13 @@ export default function StudentSchedule() {
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<number | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
   const [selectedCycleType, setSelectedCycleType] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  
+  // Verifică dacă trebuie să afișăm evaluările periodice
+  const isAssessmentSchedule = 
+    selectedSemester === 'assessments1' && 
+    selectedCycleType === 'F' && 
+    selectedAcademicYear === 1;
 
   // Gestionare buton "back" din browser
   useEffect(() => {
@@ -194,14 +203,47 @@ export default function StudentSchedule() {
       }
     };
 
+    // Funcție pentru încărcarea evaluărilor periodice
+    const fetchAssessmentSchedules = async () => {
+      if (
+        selectedAcademicYear === null ||
+        selectedSemester === null ||
+        selectedCycleType === null
+      ) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await assessmentScheduleService.getAllAssessmentSchedules({
+          academic_year: selectedAcademicYear,
+          semester: selectedSemester,
+          cycle_type: selectedCycleType,
+        });
+        setAssessmentSchedules(data);
+        setError('');
+      } catch (err: any) {
+        console.error('Eroare la încărcarea evaluărilor periodice:', err);
+        setError(err.response?.data?.detail || 'Eroare la încărcarea evaluărilor periodice.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     // Încărcare inițială - doar dacă există o selecție (nu încărca toate schedule-urile la start)
     // Schedule-urile vor fi încărcate când studentul selectează un an/semestru/ciclu
     if (selectedAcademicYear !== null && selectedSemester !== null && selectedCycleType !== null) {
+      // Verifică dacă trebuie să încărce evaluări periodice
+      if (isAssessmentSchedule) {
+        fetchAssessmentSchedules();
+      } else {
       fetchSchedules(true, false);
+      }
     }
 
     // Conectare WebSocket pentru actualizări în timp real
-    if (isOnline) {
+    // Verifică dacă nu este deja conectat înainte de a conecta
+    if (isOnline && !scheduleWebSocket.isConnected()) {
       scheduleWebSocket.connect();
       
       // Listener pentru actualizări de orar prin WebSocket
@@ -277,7 +319,8 @@ export default function StudentSchedule() {
         window.removeEventListener('online', handleOnline);
         unsubscribeScheduleUpdate();
         unsubscribeConnect();
-        scheduleWebSocket.disconnect();
+        // NU facem disconnect() aici pentru că vrem să păstrăm conexiunea activă
+        // doar dacă utilizatorul iese din pagină complet
       };
     } else {
       // Dacă nu există conexiune, păstrează polling-ul ca fallback
@@ -291,7 +334,14 @@ export default function StudentSchedule() {
         clearInterval(pollingInterval);
       };
     }
-  }, [isOnline, selectedAcademicYear, selectedSemester, selectedCycleType]);
+  }, [isOnline, selectedAcademicYear, selectedSemester, selectedCycleType, isAssessmentSchedule]);
+
+  // Cleanup WebSocket când componenta se demontă complet
+  useEffect(() => {
+    return () => {
+      scheduleWebSocket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedGroup === 'all') {
@@ -302,7 +352,20 @@ export default function StudentSchedule() {
   }, [selectedGroup, schedules]);
 
   const uniqueGroups = useMemo(() => {
-    // Creează un map pentru a păstra ordinea grupurilor după groupId
+    // Pentru evaluările periodice, extragem grupele din groups_composition
+    if (isAssessmentSchedule) {
+      const allGroups = new Set<string>();
+      assessmentSchedules.forEach((assessment) => {
+        const groups = assessment.groups_composition
+          .split(',')
+          .map((g) => g.trim())
+          .filter((g) => g.length > 0);
+        groups.forEach((group) => allGroups.add(group));
+      });
+      return Array.from(allGroups).sort();
+    }
+
+    // Pentru orare normale, creează un map pentru a păstra ordinea grupurilor după groupId
     const groupMap = new Map<number, string>();
     for (const schedule of schedules) {
       if (!groupMap.has(schedule.group.id)) {
@@ -345,7 +408,7 @@ export default function StudentSchedule() {
     });
     
     return sortedGroupIds.map((groupId) => groupMap.get(groupId)!);
-  }, [schedules]);
+  }, [schedules, assessmentSchedules, isAssessmentSchedule]);
 
   const handleLogin = () => {
     router.push('/login');
@@ -354,7 +417,16 @@ export default function StudentSchedule() {
   const handleLogout = () => {
     authService.logout();
     setIsAuthenticated(false);
+    setUserEmail(null);
   };
+
+  // Obține email-ul utilizatorului din token
+  useEffect(() => {
+    if (isAuthenticated) {
+      const email = authService.getUserEmail();
+      setUserEmail(email);
+    }
+  }, [isAuthenticated]);
 
   // Închide meniul de export când se face click în afara lui
   useEffect(() => {
@@ -434,8 +506,18 @@ export default function StudentSchedule() {
         
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {isAuthenticated ? (
+            <>
+              {userEmail && (
+                <span style={{ 
+                  color: '#333', 
+                  fontSize: '0.9rem',
+                  fontWeight: '400',
+                }}>
+                  {userEmail}
+                </span>
+              )}
               <button
                 onClick={handleLogout}
                 style={{
@@ -450,6 +532,7 @@ export default function StudentSchedule() {
               >
                 Logout
               </button>
+            </>
           ) : (
             <button
               onClick={handleLogin}
@@ -719,6 +802,48 @@ export default function StudentSchedule() {
         </div>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>Se încarcă...</div>
+        ) : isAssessmentSchedule ? (
+          // Afișează evaluările periodice
+          assessmentSchedules.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '3rem',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                color: '#666',
+              }}
+            >
+              Nu există evaluări periodice în sistem.
+            </div>
+          ) : (
+            <div
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              <h2
+                style={{
+                  textAlign: 'center',
+                  marginBottom: '1rem',
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontWeight: '100',
+                }}
+              >
+                Orar evaluarea periodică nr. 1 - Anul I
+              </h2>
+              <AssessmentScheduleTable
+                assessmentSchedules={assessmentSchedules}
+                selectedGroup={selectedGroup}
+              />
+            </div>
+          )
         ) : filteredSchedules.length === 0 ? (
           <div
             style={{

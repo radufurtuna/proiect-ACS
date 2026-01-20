@@ -401,6 +401,17 @@ export const saveSchedule = async (params: SaveScheduleParams): Promise<void> =>
 
   await Promise.all([...updatePromises, ...createPromises, ...deletePromises]);
 
+  // Trimite notificări prin email către studenții din grupele modificate
+  if (groupIdsToUpdate.size > 0) {
+    try {
+      const modifiedGroupIds = Array.from(groupIdsToUpdate);
+      const notificationResults = await scheduleService.notifyScheduleChanges(modifiedGroupIds);
+      console.log('✓ Notificări email trimise:', notificationResults);
+    } catch (err) {
+      console.warn('⚠️ Eroare la trimiterea notificărilor email:', err);
+    }
+  }
+
   setModifiedGroups(new Set());
 
   try {

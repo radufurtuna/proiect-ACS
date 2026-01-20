@@ -1,4 +1,5 @@
 # Models package
+from .assessment_schedule import AssessmentSchedule
 from .group import Group
 from .professor import Professor
 from .room import Room
@@ -9,6 +10,7 @@ from .user_group import UserGroup
 from .verification_code import VerificationCode
 
 __all__ = [
+    "AssessmentSchedule",
     "Group",
     "Professor",
     "Room",

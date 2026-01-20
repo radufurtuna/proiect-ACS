@@ -25,6 +25,7 @@ class ScheduleWebSocketClient {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isManuallyDisconnected = false;
   private shouldReconnect = true;
+  private isConnecting = false; // Flag pentru a preveni conexiuni simultane
   
   private scheduleUpdateCallbacks: Set<ScheduleUpdateCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
@@ -44,12 +45,30 @@ class ScheduleWebSocketClient {
    * Conectează clientul la serverul WebSocket.
    */
   connect(): void {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      console.log('WebSocket deja conectat sau în proces de conectare');
+    // Previne conexiuni duplicate
+    if (this.isConnecting) {
+      console.log('⚠️ WebSocket în proces de conectare, se ignoră apelul duplicat');
       return;
     }
 
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('✓ WebSocket deja conectat');
+      return;
+    }
+
+    // Dacă există o conexiune în proces, așteaptă
+    if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+      console.log('⚠️ WebSocket în proces de conectare, se ignoră apelul duplicat');
+      return;
+    }
+
+    // Curăță conexiunea veche dacă există (în stări CLOSING sau CLOSED)
+    if (this.ws && (this.ws.readyState === WebSocket.CLOSING || this.ws.readyState === WebSocket.CLOSED)) {
+      this.ws = null;
+    }
+
     this.isManuallyDisconnected = false;
+    this.isConnecting = true;
     
     try {
       console.log(`🔌 Conectare WebSocket la ${this.wsUrl}...`);
@@ -57,6 +76,7 @@ class ScheduleWebSocketClient {
 
       this.ws.onopen = () => {
         console.log('✓ WebSocket conectat cu succes');
+        this.isConnecting = false;
         this.reconnectAttempts = 0;
         this.notifyConnectionCallbacks();
       };
@@ -70,18 +90,9 @@ class ScheduleWebSocketClient {
         }
       };
 
-      this.ws.onerror = (error) => {
- 
-        if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
- 
-          return;
-        }
-        console.error('✗ Eroare WebSocket:', error);
-        this.notifyErrorCallbacks(error);
-      };
-
       this.ws.onclose = () => {
         console.log('WebSocket deconectat');
+        this.isConnecting = false;
         this.ws = null;
         
 
@@ -91,8 +102,20 @@ class ScheduleWebSocketClient {
           console.error('✗ Număr maxim de încercări de reconectare atins');
         }
       };
+
+      this.ws.onerror = (error) => {
+        this.isConnecting = false;
+        
+        if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+          // Eroare în timpul conectării - va fi gestionată în onclose
+          return;
+        }
+        console.error('✗ Eroare WebSocket:', error);
+        this.notifyErrorCallbacks(error);
+      };
     } catch (error) {
       console.error('✗ Eroare la crearea conexiunii WebSocket:', error);
+      this.isConnecting = false;
       if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
         this.scheduleReconnect();
       }
@@ -105,6 +128,7 @@ class ScheduleWebSocketClient {
   disconnect(): void {
     this.isManuallyDisconnected = true;
     this.shouldReconnect = false;
+    this.isConnecting = false;
     
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -112,7 +136,13 @@ class ScheduleWebSocketClient {
     }
 
     if (this.ws) {
-      this.ws.close();
+      try {
+        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+          this.ws.close();
+        }
+      } catch (error) {
+        console.error('Eroare la deconectarea WebSocket:', error);
+      }
       this.ws = null;
     }
   }
