@@ -28,6 +28,8 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
   const [oddWeekInputsOpen, setOddWeekInputsOpen] = useState<Record<string, boolean>>({});
   // Tracking pentru grupele modificate - doar acestea vor fi salvate
   const [modifiedGroups, setModifiedGroups] = useState<Set<string>>(new Set());
+  // State pentru grupă selectată (filtrare)
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadReferenceData = async () => {
@@ -221,7 +223,8 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
       id: newGroupId,
       groupName: '',
     };
-    setGroups((prev) => [...prev, newGroup]);
+    // Adaugă noua grupă la începutul listei (stânga tabelului)
+    setGroups((prev) => [newGroup, ...prev]);
     // Inițializează datele pentru noua grupă
     setCellData((prev) => ({
       ...prev,
@@ -473,45 +476,75 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
   const handleDeleteAllGroups = async () => {
     try {
       setLoading(true);
-      // Obține toate schedule-urile pentru toate grupele
-      const allSchedules = await scheduleService.getAllSchedules();
+      
+      // Construiește parametrii de filtrare pentru a șterge doar schedule-urile din orarul curent
+      const filterParams: {
+        academic_year?: number;
+        semester?: string;
+        cycle_type?: string;
+      } = {};
+      
+      if (academicYear !== undefined && academicYear !== null) {
+        filterParams.academic_year = academicYear;
+      }
+      if (period) {
+        filterParams.semester = period;
+      }
+      if (cycleType) {
+        filterParams.cycle_type = cycleType;
+      }
+      
+      // Obține doar schedule-urile pentru orarul curent (academicYear, period, cycleType)
+      const allSchedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
 
       // Colectează ID-urile disciplinelor, profesorilor și sălilor folosite în toate schedule-urile
       const subjectIds = new Set(allSchedules.map((s) => s.subject.id));
       const professorIds = new Set(allSchedules.map((s) => s.professor.id));
       const roomIds = new Set(allSchedules.map((s) => s.room.id));
 
-      // Șterge toate schedule-urile din baza de date
+      // Șterge toate schedule-urile din baza de date (doar cele din orarul curent)
       await Promise.all(allSchedules.map((schedule) => scheduleService.deleteSchedule(schedule.id)));
 
-      // După ștergerea tuturor schedule-urilor, toate disciplinele, profesorii și sălile nu mai sunt folosite
-      // Șterge toate disciplinele care au fost folosite
+      // Verifică dacă disciplinele, profesorii și sălile sunt folosite în alte orare
+      // Obține toate schedule-urile rămase (din alte orare) pentru a verifica dacă sunt încă folosite
+      const allRemainingSchedules = await scheduleService.getAllSchedules();
+      const remainingSubjectIds = new Set(allRemainingSchedules.map((s) => s.subject.id));
+      const remainingProfessorIds = new Set(allRemainingSchedules.map((s) => s.professor.id));
+      const remainingRoomIds = new Set(allRemainingSchedules.map((s) => s.room.id));
+
+      // Șterge doar disciplinele care nu mai sunt folosite în alte orare
       for (const subjectId of subjectIds) {
-        try {
-          await referenceDataService.deleteSubject(subjectId);
-          setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
-        } catch (err: any) {
-          console.error(`Eroare la ștergerea disciplinei ${subjectId}:`, err);
+        if (!remainingSubjectIds.has(subjectId)) {
+          try {
+            await referenceDataService.deleteSubject(subjectId);
+            setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
+          } catch (err: any) {
+            console.error(`Eroare la ștergerea disciplinei ${subjectId}:`, err);
+          }
         }
       }
 
-      // Șterge toți profesorii care au fost folosiți
+      // Șterge doar profesorii care nu mai sunt folosiți în alte orare
       for (const professorId of professorIds) {
-        try {
-          await referenceDataService.deleteProfessor(professorId);
-          setProfessors((prev) => prev.filter((p) => p.id !== professorId));
-        } catch (err: any) {
-          console.error(`Eroare la ștergerea profesorului ${professorId}:`, err);
+        if (!remainingProfessorIds.has(professorId)) {
+          try {
+            await referenceDataService.deleteProfessor(professorId);
+            setProfessors((prev) => prev.filter((p) => p.id !== professorId));
+          } catch (err: any) {
+            console.error(`Eroare la ștergerea profesorului ${professorId}:`, err);
+          }
         }
       }
 
-      // Șterge toate sălile care au fost folosite
+      // Șterge doar sălile care nu mai sunt folosite în alte orare
       for (const roomId of roomIds) {
-        try {
-          await referenceDataService.deleteRoom(roomId);
-          setRooms((prev) => prev.filter((r) => r.id !== roomId));
-        } catch (err: any) {
-          console.error(`Eroare la ștergerea sălii ${roomId}:`, err);
+        if (!remainingRoomIds.has(roomId)) {
+          try {
+            await referenceDataService.deleteRoom(roomId);
+            setRooms((prev) => prev.filter((r) => r.id !== roomId));
+          } catch (err: any) {
+            console.error(`Eroare la ștergerea sălii ${roomId}:`, err);
+          }
         }
       }
 
@@ -601,6 +634,10 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
         onDeleteAllGroups={handleDeleteAllGroups}
         onCancel={handleCancel}
         academicYear={academicYear}
+        selectedGroupId={selectedGroupId}
+        onGroupFilterChange={setSelectedGroupId}
+        period={period}
+        cycleType={cycleType}
       />
       {message && (
         <div
@@ -619,7 +656,7 @@ export default function ScheduleGrid({ academicYear = 1, period = null, cycleTyp
         </div>
       )}
       <ScheduleTable
-        groups={groups}
+        groups={selectedGroupId ? groups.filter((g) => g.id === selectedGroupId) : groups}
         cellData={cellData}
         oddWeekInputsOpen={oddWeekInputsOpen}
         onGroupNameChange={handleGroupNameChange}

@@ -2,11 +2,15 @@
 
 import React, { Fragment } from 'react';
 import type { Schedule } from '@/types/schedule';
+import { tableStyles, COLORS, cardStyles } from '@/utils/styles';
 
 interface ScheduleTableProps {
   schedules: Schedule[];
   selectedGroup: string;
   uniqueGroups: string[];
+  // Opțional: filtrează tabelul doar pe o anumită zi (ex: "Luni").
+  // Dacă este "all" sau undefined, afișează toate zilele.
+  dayFilter?: string | 'all';
 }
 
 const DAYS = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'] as const;
@@ -26,13 +30,18 @@ export default function ScheduleTable({
   schedules,
   selectedGroup,
   uniqueGroups,
+  dayFilter,
 }: ScheduleTableProps) {
+  const daysToRender = (dayFilter && dayFilter !== 'all')
+    ? DAYS.filter((d) => d === dayFilter)
+    : DAYS;
+
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div style={{ overflowX: 'auto', borderRadius: '12px', overflow: 'hidden', boxShadow: COLORS.shadow }}>
       <table
         style={{
+          ...tableStyles.table,
           width: 'auto',
-          borderCollapse: 'collapse',
           tableLayout: 'fixed',
         }}
       >
@@ -40,12 +49,11 @@ export default function ScheduleTable({
           <tr>
             <th
               style={{
-                border: '1px solid #000',
-                padding: '0.5rem',
+                ...tableStyles.th,
+                border: `2px solid ${COLORS.borderDark}`,
+                borderRight: `2px solid ${COLORS.borderDark}`,
+                padding: '1rem 0.75rem',
                 textAlign: 'center',
-                fontWeight: 'bold',
-                backgroundColor: '#f0f0f0',
-                color: '#000',
                 width: '80px',
                 minWidth: '80px',
                 maxWidth: '80px',
@@ -55,12 +63,11 @@ export default function ScheduleTable({
             </th>
             <th
               style={{
-                border: '1px solid #000',
-                padding: '0.5rem',
+                ...tableStyles.th,
+                border: `2px solid ${COLORS.borderDark}`,
+                borderRight: `2px solid ${COLORS.borderDark}`,
+                padding: '1rem 0.75rem',
                 textAlign: 'center',
-                fontWeight: 'bold',
-                backgroundColor: '#f0f0f0',
-                color: '#000',
                 width: '125px',
                 minWidth: '125px',
                 maxWidth: '125px',
@@ -72,12 +79,11 @@ export default function ScheduleTable({
               <th
                 key={groupCode}
                 style={{
-                  border: '1px solid #000',
-                  padding: '0.5rem',
-                  backgroundColor: '#f0f0f0',
+                  ...tableStyles.th,
+                  border: `2px solid ${COLORS.borderDark}`,
+                  borderRight: `2px solid ${COLORS.borderDark}`,
+                  padding: '1rem 0.75rem',
                   textAlign: 'center',
-                  fontWeight: 'bold',
-                  color: '#000',
                   width: '150px',
                   minWidth: '150px',
                   maxWidth: '150px',
@@ -89,7 +95,7 @@ export default function ScheduleTable({
           </tr>
         </thead>
         <tbody>
-          {DAYS.map((day) => (
+          {daysToRender.map((day) => (
             <Fragment key={day}>
               {TIME_SLOTS.map((hour, index) => (
                 <tr key={`${day}-${hour}`}>
@@ -97,15 +103,17 @@ export default function ScheduleTable({
                     <td
                       rowSpan={7}
                       style={{
-                        border: '1px solid #000',
-                        padding: '0.5rem',
+                        ...tableStyles.td,
+                        border: `2px solid ${COLORS.borderDark}`,
+                        borderRight: `2px solid ${COLORS.borderDark}`,
+                        padding: '1rem 0.75rem',
                         textAlign: 'center',
-                        fontWeight: 'bold',
+                        fontWeight: '700',
                         verticalAlign: 'top',
-                        color: '#000',
                         width: '80px',
                         minWidth: '80px',
                         maxWidth: '80px',
+                        backgroundColor: COLORS.backgroundLight,
                       }}
                     >
                       {day}
@@ -113,13 +121,15 @@ export default function ScheduleTable({
                   )}
                   <td
                     style={{
-                      border: '1px solid #000',
-                      padding: '0.5rem',
+                      ...tableStyles.td,
+                      border: `2px solid ${COLORS.borderDark}`,
+                      borderRight: `2px solid ${COLORS.borderDark}`,
+                      padding: '0.75rem',
                       textAlign: 'center',
-                      color: '#000',
                       width: '100px',
                       minWidth: '100px',
                       maxWidth: '100px',
+                      backgroundColor: COLORS.backgroundLight,
                     }}
                   >
                     {hour}
@@ -132,26 +142,41 @@ export default function ScheduleTable({
                       <td
                         key={groupCode}
                         style={{
-                          border: '1px solid #000',
-                          padding: '0.5rem',
+                          ...tableStyles.td,
+                          border: `2px solid ${COLORS.borderDark}`,
+                          borderRight: `2px solid ${COLORS.borderDark}`,
+                          padding: '0.75rem',
                           width: YEAR_COLUMN_WIDTH,
                           minWidth: '150px',
                           maxWidth: '150px',
-                          color: '#000',
                           textAlign: 'center',
                           verticalAlign: 'middle',
+                          backgroundColor: COLORS.white,
                         }}
                       >
                         {schedule ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                             {/* Date normale */}
-                            <div style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                            <div style={{ 
+                              fontSize: '0.8125rem', 
+                              fontWeight: '600',
+                              color: COLORS.textPrimary,
+                              lineHeight: '1.4',
+                            }}>
                               {schedule.subject.name}
                             </div>
-                            <div style={{ fontSize: '0.75rem' }}>
+                            <div style={{ 
+                              fontSize: '0.75rem',
+                              color: COLORS.textSecondary,
+                              lineHeight: '1.3',
+                            }}>
                               {schedule.professor.full_name}
                             </div>
-                            <div style={{ fontSize: '0.75rem' }}>
+                            <div style={{ 
+                              fontSize: '0.75rem',
+                              color: COLORS.primary,
+                              fontWeight: '500',
+                            }}>
                               {schedule.room.code}
                             </div>
                             
@@ -160,36 +185,55 @@ export default function ScheduleTable({
                               <div
                                 style={{
                                   marginTop: '0.5rem',
-                                  padding: '0.5rem',
-                                  backgroundColor: '#e0e0e0',
-                                  borderRadius: '3px',
-                                  borderTop: '1px dashed #999',
+                                  padding: '0.625rem',
+                                  backgroundColor: COLORS.backgroundLight,
+                                  borderRadius: '6px',
+                                  borderTop: `2px dashed ${COLORS.border}`,
                                 }}
                               >
                                 <div
                                   style={{
-                                    fontSize: '0.7rem',
-                                    color: '#666',
-                                    fontWeight: '500',
-                                    marginBottom: '0.25rem',
+                                    fontSize: '0.6875rem',
+                                    color: COLORS.textMuted,
+                                    fontWeight: '600',
+                                    marginBottom: '0.375rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
                                   }}
                                 >
                                   Săpt. Impară:
                                 </div>
-                                <div style={{ fontSize: '0.7rem', fontWeight: '500', color: '#333' }}>
+                                <div style={{ 
+                                  fontSize: '0.75rem', 
+                                  fontWeight: '600', 
+                                  color: COLORS.textPrimary,
+                                  marginBottom: '0.25rem',
+                                }}>
                                   {schedule.odd_week_subject.name}
                                 </div>
-                                <div style={{ fontSize: '0.7rem', color: '#333' }}>
+                                <div style={{ 
+                                  fontSize: '0.6875rem', 
+                                  color: COLORS.textSecondary,
+                                  marginBottom: '0.125rem',
+                                }}>
                                   {schedule.odd_week_professor.full_name}
                                 </div>
-                                <div style={{ fontSize: '0.7rem', color: '#333' }}>
+                                <div style={{ 
+                                  fontSize: '0.6875rem', 
+                                  color: COLORS.primary,
+                                  fontWeight: '500',
+                                }}>
                                   {schedule.odd_week_room.code}
                                 </div>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div style={{ fontSize: '0.75rem', color: '#999' }}>—</div>
+                          <div style={{ 
+                            fontSize: '0.8125rem', 
+                            color: COLORS.textLight,
+                            fontStyle: 'italic',
+                          }}>—</div>
                         )}
                       </td>
                     );

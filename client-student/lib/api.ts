@@ -103,7 +103,27 @@ export const authService = {
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
+      localStorage.removeItem('userGroupCode'); // Curăță și group_code
     }
+  },
+
+  // Salvează group_code în localStorage pentru utilizare offline
+  setUserGroupCode: (groupCode: string | null) => {
+    if (typeof window !== 'undefined') {
+      if (groupCode) {
+        localStorage.setItem('userGroupCode', groupCode);
+      } else {
+        localStorage.removeItem('userGroupCode');
+      }
+    }
+  },
+
+  // Obține group_code din localStorage (pentru utilizare offline)
+  getUserGroupCode: (): string | null => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userGroupCode');
+    }
+    return null;
   },
 
   getToken: (): string | null => {
@@ -153,6 +173,48 @@ export const authService = {
       console.error('Eroare la decodarea token-ului:', error);
       return null;
     }
+  },
+
+  // Verifică dacă token-ul este expirat local (fără server)
+  isTokenExpired: (): boolean => {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return true;
+    }
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return true;
+      }
+      const payload = parts[1];
+      const decoded = JSON.parse(
+        atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+      );
+      
+      // Verifică dacă token-ul are exp (expiration time)
+      if (!decoded.exp) {
+        return false; // Dacă nu are exp, considerăm că nu este expirat
+      }
+      
+      // exp este în secunde, Date.now() este în milisecunde
+      const expirationTime = decoded.exp * 1000;
+      const currentTime = Date.now();
+      
+      // Adaugă un buffer de 5 minute pentru a evita probleme de sincronizare
+      return currentTime >= (expirationTime - 5 * 60 * 1000);
+    } catch (error) {
+      console.error('Eroare la verificarea expirării token-ului:', error);
+      return true; // Dacă nu putem decoda, considerăm că este expirat
+    }
+  },
+
+  // Obține utilizatorul curent (inclusiv grupa asociată) de la server
+  getCurrentUser: async (): Promise<User> => {
+    const response = await api.get<User>('/auth/me');
+    return response.data;
   },
 };
 

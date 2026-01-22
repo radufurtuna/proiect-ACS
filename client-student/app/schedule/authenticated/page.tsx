@@ -14,9 +14,6 @@ import {
 import { exportScheduleToPdf } from '@/lib/exportPdf';
 import { exportScheduleToExcel } from '@/lib/exportExcel';
 import GroupFilter from '@/components/student/GroupFilter';
-import CycleFButton from '@/components/student/CycleFButton';
-import CycleFRButton from '@/components/student/CycleFRButton';
-import CycleMasteratButton from '@/components/student/CycleMasteratButton';
 import ScheduleTable from '@/components/student/ScheduleTable';
 import AssessmentScheduleTable from '@/components/student/AssessmentScheduleTable';
 import { scheduleWebSocket } from '@/lib/websocket';
@@ -64,7 +61,6 @@ export default function StudentSchedule() {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const isFetchingRef = useRef(false); // Flag pentru a preveni cereri duplicate
   const [showSchedule, setShowSchedule] = useState(false); // Control pentru afișarea orarului sau butoanelor
-  const [openCycles, setOpenCycles] = useState<Set<'F' | 'FR' | 'masterat'>>(new Set()); // Set pentru a ține minte butoanele deschise
   // State pentru filtrarea schedule-urilor
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<number | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
@@ -75,6 +71,7 @@ export default function StudentSchedule() {
   const selectedCycleTypeRef = useRef(selectedCycleType);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [dayFilter, setDayFilter] = useState<string | 'all'>('all');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Verifică dacă trebuie să afișăm evaluările periodice / sesiunea
   // (pentru orice an și pentru ciclurile F / FR)
@@ -83,15 +80,41 @@ export default function StudentSchedule() {
     selectedSemester === 'assessments2' ||
     selectedSemester === 'exams';
 
-  // Helper: filtrează orarele după grupa utilizatorului (nu se folosește în modul public)
+  // Helper: filtrează orarele după grupa utilizatorului
   const filterSchedulesForUser = (data: Schedule[]) => {
+    if (userGroupCode) {
+      return data.filter((s) => s.group.code === userGroupCode);
+    }
     return data;
   };
 
-  // Helper: filtrează evaluările după grupa utilizatorului (nu se folosește în modul public)
+  // Helper: filtrează evaluările după grupa utilizatorului
   const filterAssessmentsForUser = (data: AssessmentSchedule[]) => {
+    if (userGroupCode) {
+      return data
+        .filter((a) =>
+          a.groups_composition
+            .split(',')
+            .map((g) => g.trim())
+            .includes(userGroupCode)
+        )
+        .map((a) => ({
+          ...a,
+          groups_composition: userGroupCode, // Modifică groups_composition să afișeze doar grupa utilizatorului
+        }));
+    }
     return data;
   };
+
+  // Curăță/filtrează cache-ul existent imediat ce știm grupa utilizatorului
+  useEffect(() => {
+    if (userGroupCode) {
+      // Filtrăm toate cache-urile de orar zilnic
+      filterScheduleCachesByGroup(userGroupCode);
+      // Filtrăm toate cache-urile pentru evaluări periodice
+      filterAssessmentCachesByGroup(userGroupCode);
+    }
+  }, [userGroupCode]);
 
   // Gestionare buton "back" din browser
   useEffect(() => {
@@ -128,35 +151,71 @@ export default function StudentSchedule() {
     };
   }, []);
 
-  // Inițializează starea de autentificare
-  // Această pagină este DOAR pentru utilizatorii neautentificați
+ 
   useEffect(() => {
     const hasToken = authService.isAuthenticated();
     
-    // Dacă nu există token, utilizatorul nu este autentificat - rămâne pe pagina publică
+   
     if (!hasToken) {
-      setIsAuthenticated(false);
-      setUserEmail(null);
-      setUserGroupCode(null);
-      setSelectedGroup('all');
+      router.replace('/schedule');
       return;
     }
 
-    // Dacă există token, verifică dacă este valid și redirecționează la pagina autentificată
+    // Verifică dacă token-ul este expirat local (fără server)
+    if (authService.isTokenExpired()) {
+      console.error('Token expirat local, redirecționare la pagina publică');
+      authService.logout();
+      router.replace('/schedule');
+      return;
+    }
+
+    // Dacă există token și nu este expirat local, încearcă să obțină datele utilizatorului
+    // Dacă serverul este oprit, permite utilizatorului să rămână pe pagină și să folosească cache-ul
     authService
       .getCurrentUser()
       .then((user: User) => {
-        // Token-ul este valid - utilizatorul este autentificat - redirecționează
-        router.replace('/schedule/authenticated');
+        // Token-ul este valid - utilizatorul este autentificat
+        setIsAuthenticated(true);
+        const email = authService.getUserEmail();
+        setUserEmail(email);
+        
+        if (user.group_code) {
+          setUserGroupCode(user.group_code);
+          setSelectedGroup(user.group_code);
+          // Salvează group_code în localStorage pentru utilizare offline
+          authService.setUserGroupCode(user.group_code);
+        }
       })
-      .catch((err) => {
-        // Token-ul este invalid sau expirat - curăță starea și permite acces fără autentificare
-        console.error('Token invalid sau expirat, se continuă fără autentificare:', err);
-        authService.logout(); // Curăță token-ul invalid
-        setIsAuthenticated(false);
-        setUserEmail(null);
-        setUserGroupCode(null);
-        setSelectedGroup('all');
+      .catch((err: any) => {
+        // Verifică tipul erorii
+        const isUnauthorized = err.response?.status === 401;
+        const isNetworkError = !err.response || err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK' || err.message?.includes('Network Error');
+        
+        if (isUnauthorized) {
+          // Token-ul este invalid sau expirat (401) - redirecționează la pagina publică
+          console.error('Token invalid sau expirat (401), redirecționare la pagina publică:', err);
+          authService.logout();
+          router.replace('/schedule');
+        } else if (isNetworkError) {
+          // Eroare de rețea (server oprit) - permite utilizatorului să rămână pe pagină
+          // Folosește token-ul din localStorage și permite funcționarea offline
+          console.warn('Server oprit sau eroare de rețea, se continuă în modul offline:', err);
+          setIsAuthenticated(true); // Permite utilizatorului să rămână autentificat
+          const email = authService.getUserEmail();
+          setUserEmail(email);
+          // Încearcă să obțină group_code din localStorage (salvat anterior)
+          const savedGroupCode = authService.getUserGroupCode();
+          if (savedGroupCode) {
+            setUserGroupCode(savedGroupCode);
+            setSelectedGroup(savedGroupCode);
+            console.log('✓ Group code încărcat din localStorage pentru modul offline:', savedGroupCode);
+          }
+        } else {
+          // Altă eroare - tratează ca token invalid pentru siguranță
+          console.error('Eroare necunoscută la verificarea token-ului, redirecționare:', err);
+          authService.logout();
+          router.replace('/schedule');
+        }
       });
   }, [router]);
 
@@ -586,8 +645,17 @@ export default function StudentSchedule() {
     return sortedGroupIds.map((groupId) => groupMap.get(groupId)!);
   }, [schedules, assessmentSchedules, isAssessmentSchedule]);
 
-  const handleLogin = () => {
-    router.push('/login');
+  const handleLogout = () => {
+    setIsLoggingOut(true); // Previne re-renderizarea în timpul logout-ului
+    authService.logout();
+    setIsAuthenticated(false);
+    setUserEmail(null);
+    setUserGroupCode(null);
+    setSelectedGroup('all');
+    setShowSchedule(false);
+    setDayFilter('all');
+    // Redirecționează la pagina de login după logout
+    router.replace('/login');
   };
 
   // Închide meniul de export când se face click în afara lui
@@ -649,6 +717,26 @@ export default function StudentSchedule() {
     }
   };
 
+  // Filtrare rapidă pe ziua curentă (doar pentru utilizator autenticat)
+  const handleToggleTodayFilter = () => {
+    if (dayFilter === 'all') {
+      const today = new Date().getDay(); // 0 = Duminică, 1 = Luni, ...
+      const dayMap: Record<number, string> = {
+        1: 'Luni',
+        2: 'Marți',
+        3: 'Miercuri',
+        4: 'Joi',
+        5: 'Vineri',
+        6: 'Sâmbătă',
+      };
+      const todayName = dayMap[today];
+      if (todayName) {
+        setDayFilter(todayName);
+      }
+    } else {
+      setDayFilter('all');
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: COLORS.background }}>
@@ -663,24 +751,37 @@ export default function StudentSchedule() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            onClick={handleLogin}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = COLORS.darkHover;
-              e.currentTarget.style.boxShadow = COLORS.shadow;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = COLORS.dark;
-              e.currentTarget.style.boxShadow = COLORS.shadowSm;
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-            style={{
-              ...buttonStyles.dark,
-            }}
-          >
-            Autentificare
-          </button>
+          {!isLoggingOut && (
+            <>
+              {userEmail && (
+                <span style={{ 
+                  color: COLORS.textSecondary, 
+                  fontSize: '0.9rem',
+                  fontWeight: '400',
+                }}>
+                  {userEmail}
+                </span>
+              )}
+              <button
+                onClick={handleLogout}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.dangerHover;
+                  e.currentTarget.style.boxShadow = COLORS.shadow;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.danger;
+                  e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                style={{
+                  ...buttonStyles.danger,
+                }}
+              >
+                Deconectare
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -691,94 +792,308 @@ export default function StudentSchedule() {
           </div>
         )}
 
-        {/* Container cu butoane pentru selectarea orarului - DOAR pentru utilizatorii neautentificați */}
+        {/* Container cu butoane pentru selectarea orarului - DOAR pentru utilizatorii autentificați */}
         {!showSchedule && (
           <div
             style={{
               backgroundColor: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              overflow: 'hidden',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
               padding: '2rem',
-              width: TABLE_WIDTH,
               margin: '0 auto',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1.25rem',
+              maxWidth: '1200px',
             }}
           >
-            <table
+            {/* Semestrul de toamnă */}
+            <button
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+              }}
               style={{
-                width: '100%',
-                borderCollapse: 'collapse',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onClick={() => {
+                setSelectedAcademicYear(1);
+                setSelectedSemester('semester1');
+                setSelectedCycleType('F');
+                setShowSchedule(true);
+                window.history.pushState({ showSchedule: true }, '', window.location.href);
               }}
             >
-              <tbody>
-                <CycleFButton
-                  isOpen={openCycles.has('F')}
-                  onToggle={() => {
-                    setOpenCycles((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has('F')) {
-                        newSet.delete('F');
-                      } else {
-                        newSet.add('F');
-                      }
-                      return newSet;
-                    });
-                  }}
-                  onScheduleSelect={(year, period, cellNumber) => {
-                    // Setează valorile pentru filtrare
-                    setSelectedGroup('all');
-                    setDayFilter('all');
-                    setSelectedAcademicYear(year);
-                    setSelectedSemester(period);
-                    setSelectedCycleType('F');
-                    setShowSchedule(true);
-                    // Adaugă o intrare în istoricul browser-ului pentru a permite butonul "back"
-                    window.history.pushState({ showSchedule: true }, '', window.location.href);
-                    // fetchSchedules va fi apelat automat prin useEffect când state-urile se actualizează
-                  }}
-                />
-                <CycleFRButton
-                  isOpen={openCycles.has('FR')}
-                  onToggle={() => {
-                    setOpenCycles((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has('FR')) {
-                        newSet.delete('FR');
-                      } else {
-                        newSet.add('FR');
-                      }
-                      return newSet;
-                    });
-                  }}
-                  onScheduleSelect={(year, period, cellNumber) => {
-                    // Setează valorile pentru filtrare
-                    setSelectedGroup('all');
-                    setDayFilter('all');
-                    setSelectedAcademicYear(year);
-                    setSelectedSemester(period);
-                    setSelectedCycleType('FR');
-                    setShowSchedule(true);
-                    // Adaugă o intrare în istoricul browser-ului pentru a permite butonul "back"
-                    window.history.pushState({ showSchedule: true }, '', window.location.href);
-                    // fetchSchedules va fi apelat automat prin useEffect când state-urile se actualizează
-                  }}
-                />
-                <CycleMasteratButton
-                  isOpen={openCycles.has('masterat')}
-                  onToggle={() => {
-                    setOpenCycles((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has('masterat')) {
-                        newSet.delete('masterat');
-                      } else {
-                        newSet.add('masterat');
-                      }
-                      return newSet;
-                    });
-                  }}
-                />
-              </tbody>
-            </table>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                <div style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '10px', 
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '500', marginBottom: '0.25rem' }}>Semestrul</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', lineHeight: '1.3' }}>Orar Semestrul de toamnă</div>
+                </div>
+              </div>
+            </button>
+
+            {/* Evaluarea periodică nr. 1 */}
+            <button
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(139, 92, 246, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.15)';
+              }}
+              style={{
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.15)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onClick={() => {
+                setSelectedAcademicYear(1);
+                setSelectedSemester('assessments1');
+                setSelectedCycleType('F');
+                setShowSchedule(true);
+                window.history.pushState({ showSchedule: true }, '', window.location.href);
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                <div style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '10px', 
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '500', marginBottom: '0.25rem' }}>Evaluare</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', lineHeight: '1.3' }}>Orar evaluarea periodică nr. 1</div>
+                </div>
+              </div>
+            </button>
+
+            {/* Evaluarea periodică nr. 2 */}
+            <button
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(168, 85, 247, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.15)';
+              }}
+              style={{
+                backgroundColor: '#a855f7',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(168, 85, 247, 0.15)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onClick={() => {
+                setSelectedAcademicYear(1);
+                setSelectedSemester('assessments2');
+                setSelectedCycleType('F');
+                setShowSchedule(true);
+                window.history.pushState({ showSchedule: true }, '', window.location.href);
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                <div style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '10px', 
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '500', marginBottom: '0.25rem' }}>Evaluare</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', lineHeight: '1.3' }}>Orar evaluarea periodică nr. 2</div>
+                </div>
+              </div>
+            </button>
+
+            {/* Sesiunea de examinare */}
+            <button
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.15)';
+              }}
+              style={{
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onClick={() => {
+                setSelectedAcademicYear(1);
+                setSelectedSemester('exams');
+                setSelectedCycleType('F');
+                setShowSchedule(true);
+                window.history.pushState({ showSchedule: true }, '', window.location.href);
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                <div style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '10px', 
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '500', marginBottom: '0.25rem' }}>Sesiune</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', lineHeight: '1.3' }}>Orar Sesiunea de examinare</div>
+                </div>
+              </div>
+            </button>
+
+            {/* Semestrul de primăvară */}
+            <button
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(34, 197, 94, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.15)';
+              }}
+              style={{
+                backgroundColor: '#22c55e',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(34, 197, 94, 0.15)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onClick={() => {
+                setSelectedAcademicYear(1);
+                setSelectedSemester('semester2');
+                setSelectedCycleType('F');
+                setShowSchedule(true);
+                window.history.pushState({ showSchedule: true }, '', window.location.href);
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                <div style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '10px', 
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '500', marginBottom: '0.25rem' }}>Semestrul</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', lineHeight: '1.3' }}>Orar Semestrul de primăvară</div>
+                </div>
+              </div>
+            </button>
           </div>
         )}
 
@@ -786,12 +1101,43 @@ export default function StudentSchedule() {
         {showSchedule && (
           <>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', width: '100%', marginBottom: '1rem', marginTop: '0', position: 'relative' }}>
-          {/* Filtrare pe grupe - doar pentru utilizatorii neautentificați */}
-          <GroupFilter
-            groups={uniqueGroups}
-            selectedGroup={selectedGroup}
-            onGroupSelect={setSelectedGroup}
-          />
+          {/* Filtrare rapidă pe ziua curentă (orarul de azi) - doar pentru orare normale, nu pentru evaluări */}
+          {!isAssessmentSchedule ? (
+            <button
+              onClick={handleToggleTodayFilter}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = COLORS.primaryHover;
+                e.currentTarget.style.boxShadow = COLORS.shadow;
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = COLORS.primary;
+                e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              style={{
+                ...buttonStyles.primary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              {dayFilter === 'all' ? 'Orarul de azi' : dayFilter}
+            </button>
+          ) : null}
           
           <div ref={exportMenuRef} style={{ position: 'relative' }}>
             <button

@@ -37,6 +37,7 @@ import {
   initialRoomForm,
 } from '@/components/admin/types';
 import { toNumberOrNull, toOptionalString, sanitizeNotes } from '@/components/admin/utils';
+import { headerStyles, buttonStyles, inputStyles, COLORS } from '@/utils/styles';
 
 const ACADEMIC_YEARS = [
   { key: 'schedule-year1', label: 'Anul I' },
@@ -528,13 +529,8 @@ export default function AdminDashboard() {
 
 
   const inputStyle = {
+    ...inputStyles.input,
     width: '100%',
-    padding: '0.75rem',
-    border: '1px solid #e2e8f0',
-    borderRadius: '4px',
-    fontSize: '0.95rem',
-    color: 'black',
-    boxSizing: 'border-box' as const,
   };
 
   const formGridStyle = {
@@ -550,14 +546,19 @@ export default function AdminDashboard() {
     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
       <button
         type="submit"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = COLORS.primaryHover;
+          e.currentTarget.style.boxShadow = COLORS.shadow;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = COLORS.primary;
+          e.currentTarget.style.boxShadow = COLORS.shadowSm;
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
         style={{
+          ...buttonStyles.primary,
           padding: '0.75rem 1.5rem',
-          backgroundColor: '#2563eb',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontWeight: 500,
         }}
       >
         {submitLabel}
@@ -566,14 +567,19 @@ export default function AdminDashboard() {
         <button
           type="button"
           onClick={onCancel}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = COLORS.backgroundLight;
+            e.currentTarget.style.borderColor = COLORS.borderDark;
+            e.currentTarget.style.boxShadow = COLORS.shadowSm;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = COLORS.white;
+            e.currentTarget.style.borderColor = COLORS.border;
+            e.currentTarget.style.boxShadow = 'none';
+          }}
           style={{
+            ...buttonStyles.secondary,
             padding: '0.75rem 1.5rem',
-            backgroundColor: '#e2e8f0',
-            color: '#0f172a',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 500,
           }}
         >
           Renunță
@@ -1020,22 +1026,8 @@ export default function AdminDashboard() {
         flexDirection: 'column',
       }}
     >
-      <header
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-          backgroundColor: 'white',
-          padding: '1rem 2rem',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: 'black' }}>
+      <header style={headerStyles.fixedHeader}>
+        <h1 style={headerStyles.title}>
           Admin
         </h1>
 
@@ -1354,7 +1346,7 @@ export default function AdminDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {userEmail && (
             <span style={{ 
-              color: 'white', 
+              color: COLORS.white, 
               fontSize: '0.9rem',
               fontWeight: '400',
               opacity: 0.9
@@ -1364,14 +1356,18 @@ export default function AdminDashboard() {
           )}
           <button
             onClick={handleLogout}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = COLORS.dangerHover;
+              e.currentTarget.style.boxShadow = COLORS.shadow;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = COLORS.danger;
+              e.currentTarget.style.boxShadow = COLORS.shadowSm;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
             style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: '500',
+              ...buttonStyles.danger,
             }}
           >
             Logout
@@ -1557,11 +1553,20 @@ export default function AdminDashboard() {
           <ScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} cycleType={selectedCycle || null} />
         )}
 
-        {/* Afișează AssessmentScheduleGrid pentru evaluarea periodică 1 - temporar doar pentru anul 1, frecvență */}
-        {(activeView === 'schedule-year1') &&
-         (selectedSemester === 'assessments1') &&
-         (selectedCycle === 'F') && (
-          <AssessmentScheduleGrid academicYear={selectedAcademicYear} period={selectedSemester} cycleType={selectedCycle || null} />
+        {/* Afișează AssessmentScheduleGrid pentru evaluările periodice / sesiune pentru toți anii (1-4), pentru F sau FR */}
+        {(activeView === 'schedule-year1' ||
+          activeView === 'schedule-year2' ||
+          activeView === 'schedule-year3' ||
+          activeView === 'schedule-year4') &&
+         (selectedSemester === 'assessments1' ||
+          selectedSemester === 'assessments2' ||
+          selectedSemester === 'exams') &&
+         (selectedCycle === 'F' || selectedCycle === 'FR') && (
+          <AssessmentScheduleGrid
+            academicYear={selectedAcademicYear}
+            period={selectedSemester}
+            cycleType={selectedCycle || null}
+          />
         )}
 
         {activeView === 'resources' && <UserManagement />}

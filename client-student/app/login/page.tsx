@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/api';
+import { layoutStyles, cardStyles, buttonStyles, inputStyles, messageStyles, COLORS } from '@/utils/styles';
 
 type LoginStep = 'email' | 'password' | 'verification-code' | 'set-password';
 
@@ -114,8 +115,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirecționează către orar
-      router.push('/schedule');
+      // Redirecționează către pagina autentificată
+      router.push('/schedule/authenticated');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Cod invalid sau eroare la setarea parolei. Te rugăm să încerci din nou.');
     } finally {
@@ -145,8 +146,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirecționează către orar
-      router.push('/schedule');
+      // Redirecționează către pagina autentificată
+      router.push('/schedule/authenticated');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Email sau parolă incorectă. Te rugăm să încerci din nou.');
     } finally {
@@ -170,33 +171,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
-        padding: '1rem',
-      }}
-    >
+    <div style={layoutStyles.centeredContainer}>
       <div
         style={{
-          backgroundColor: 'white',
-          padding: '2rem',
-          borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          ...cardStyles.cardElevated,
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '420px',
         }}
       >
         <h1
           style={{
             marginBottom: '1.5rem',
             textAlign: 'center',
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: 'black',
+            fontSize: '1.75rem',
+            fontWeight: '700',
+            color: COLORS.textPrimary,
+            letterSpacing: '-0.025em',
           }}
         >
           {step === 'email' && 'Autentificare'}
@@ -206,31 +196,13 @@ export default function LoginPage() {
         </h1>
 
         {error && (
-          <div
-            style={{
-              padding: '0.75rem',
-              backgroundColor: '#fee',
-              color: '#c33',
-              borderRadius: '4px',
-              marginBottom: '1rem',
-              fontSize: '0.875rem',
-            }}
-          >
+          <div style={messageStyles.errorSmall}>
             {error}
           </div>
         )}
 
         {message && (
-          <div
-            style={{
-              padding: '0.75rem',
-              backgroundColor: '#e7f3ff',
-              color: '#0066cc',
-              borderRadius: '4px',
-              marginBottom: '1rem',
-              fontSize: '0.875rem',
-            }}
-          >
+          <div style={messageStyles.info}>
             {message}
           </div>
         )}
@@ -239,15 +211,7 @@ export default function LoginPage() {
         {step === 'email' && (
           <form onSubmit={handleCheckEmail}>
             <div style={{ marginBottom: '1rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Email
               </label>
               <input
@@ -257,14 +221,8 @@ export default function LoginPage() {
                 required
                 disabled={loading}
                 style={{
-                  color: 'black',
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#ffffff',
+                  ...inputStyles.input,
+                  ...(loading ? inputStyles.inputDisabled : {}),
                 }}
                 placeholder="Introdu email-ul"
               />
@@ -273,16 +231,24 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.successHover;
+                  e.currentTarget.style.boxShadow = COLORS.shadow;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.success;
+                  e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
               style={{
+                ...buttonStyles.success,
+                ...(loading ? buttonStyles.disabled : {}),
                 width: '100%',
-                padding: '0.75rem',
-                backgroundColor: loading ? '#ccc' : 'green',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '1rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
                 marginBottom: '1rem',
               }}
             >
@@ -295,15 +261,7 @@ export default function LoginPage() {
         {step === 'password' && (
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '1rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Email
               </label>
               <input
@@ -311,28 +269,14 @@ export default function LoginPage() {
                 value={email}
                 disabled
                 style={{
-                  color: '#666',
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#f5f5f5',
+                  ...inputStyles.input,
+                  ...inputStyles.inputDisabled,
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Parolă
               </label>
               <div style={{ position: 'relative' }}>
@@ -343,15 +287,9 @@ export default function LoginPage() {
                   required
                   disabled={loading}
                   style={{
-                    color: 'black',
-                    width: '100%',
-                    padding: '0.75rem',
+                    ...inputStyles.input,
                     paddingRight: '3rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box',
-                    backgroundColor: '#ffffff',
+                    ...(loading ? inputStyles.inputDisabled : {}),
                   }}
                   placeholder="Introdu parola"
                 />
@@ -386,16 +324,24 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.successHover;
+                  e.currentTarget.style.boxShadow = COLORS.shadow;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.success;
+                  e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
               style={{
+                ...buttonStyles.success,
+                ...(loading ? buttonStyles.disabled : {}),
                 width: '100%',
-                padding: '0.75rem',
-                backgroundColor: loading ? '#ccc' : 'green',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '1rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
                 marginBottom: '0.5rem',
               }}
             >
@@ -406,16 +352,22 @@ export default function LoginPage() {
               type="button"
               onClick={handleBackToEmail}
               disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.backgroundLight;
+                  e.currentTarget.style.borderColor = COLORS.borderDark;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.white;
+                  e.currentTarget.style.borderColor = COLORS.border;
+                }
+              }}
               style={{
+                ...buttonStyles.secondary,
+                ...(loading ? buttonStyles.disabled : {}),
                 width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'white',
-                color: '#666',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '0.875rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
                 marginBottom: '1rem',
               }}
             >
@@ -428,15 +380,7 @@ export default function LoginPage() {
         {step === 'verification-code' && (
           <form onSubmit={handleVerifyCodeAndSetPassword}>
             <div style={{ marginBottom: '1rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Email
               </label>
               <input
@@ -444,28 +388,14 @@ export default function LoginPage() {
                 value={email}
                 disabled
                 style={{
-                  color: '#666',
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#f5f5f5',
+                  ...inputStyles.input,
+                  ...inputStyles.inputDisabled,
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Cod de verificare (6 cifre)
               </label>
               <input
@@ -476,32 +406,19 @@ export default function LoginPage() {
                 disabled={loading}
                 maxLength={6}
                 style={{
-                  color: 'black',
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
+                  ...inputStyles.input,
                   fontSize: '1.5rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#ffffff',
                   textAlign: 'center',
                   letterSpacing: '0.5rem',
                   fontFamily: 'monospace',
+                  ...(loading ? inputStyles.inputDisabled : {}),
                 }}
                 placeholder="000000"
               />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Parolă nouă
               </label>
               <div style={{ position: 'relative' }}>
@@ -513,15 +430,9 @@ export default function LoginPage() {
                   disabled={loading}
                   minLength={6}
                   style={{
-                    color: 'black',
-                    width: '100%',
-                    padding: '0.75rem',
+                    ...inputStyles.input,
                     paddingRight: '3rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box',
-                    backgroundColor: '#ffffff',
+                    ...(loading ? inputStyles.inputDisabled : {}),
                   }}
                   placeholder="Minim 6 caractere"
                 />
@@ -554,15 +465,7 @@ export default function LoginPage() {
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  color: 'black',
-                }}
-              >
+              <label style={inputStyles.label}>
                 Confirmă parola
               </label>
               <input
@@ -573,14 +476,8 @@ export default function LoginPage() {
                 disabled={loading}
                 minLength={6}
                 style={{
-                  color: 'black',
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#ffffff',
+                  ...inputStyles.input,
+                  ...(loading ? inputStyles.inputDisabled : {}),
                 }}
                 placeholder="Confirmă parola"
               />
@@ -589,16 +486,24 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.successHover;
+                  e.currentTarget.style.boxShadow = COLORS.shadow;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.success;
+                  e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
               style={{
+                ...buttonStyles.success,
+                ...(loading ? buttonStyles.disabled : {}),
                 width: '100%',
-                padding: '0.75rem',
-                backgroundColor: loading ? '#ccc' : 'green',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '1rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
                 marginBottom: '0.5rem',
               }}
             >
@@ -609,16 +514,24 @@ export default function LoginPage() {
               type="button"
               onClick={handleSendVerificationCode}
               disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.primaryLight;
+                  e.currentTarget.style.color = COLORS.primaryHover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.white;
+                  e.currentTarget.style.color = COLORS.infoText;
+                }
+              }}
               style={{
+                ...buttonStyles.secondary,
+                ...(loading ? buttonStyles.disabled : {}),
                 width: '100%',
-                padding: '0.5rem',
-                backgroundColor: 'white',
-                color: '#0066cc',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '0.875rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
+                color: COLORS.infoText,
+                borderColor: COLORS.infoBorder,
                 marginBottom: '0.5rem',
               }}
             >
@@ -629,16 +542,22 @@ export default function LoginPage() {
               type="button"
               onClick={handleBackToEmail}
               disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.backgroundLight;
+                  e.currentTarget.style.borderColor = COLORS.borderDark;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = COLORS.white;
+                  e.currentTarget.style.borderColor = COLORS.border;
+                }
+              }}
               style={{
+                ...buttonStyles.secondary,
+                ...(loading ? buttonStyles.disabled : {}),
                 width: '100%',
-                padding: '0.5rem',
-                backgroundColor: 'white',
-                color: '#666',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '0.875rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
                 marginBottom: '1rem',
               }}
             >
@@ -652,16 +571,17 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => router.push('/schedule')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = COLORS.backgroundLight;
+              e.currentTarget.style.borderColor = COLORS.borderDark;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = COLORS.white;
+              e.currentTarget.style.borderColor = COLORS.border;
+            }}
             style={{
+              ...buttonStyles.secondary,
               width: '100%',
-              padding: '0.75rem',
-              backgroundColor: 'white',
-              color: '#0f172a',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              fontWeight: '500',
             }}
           >
             Accesare orar fără autentificare

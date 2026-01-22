@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { buttonStyles, COLORS } from '@/utils/styles';
 
 interface GroupFilterProps {
   groups: string[];
@@ -33,14 +34,18 @@ export default function GroupFilter({ groups, selectedGroup, onGroupSelect }: Gr
     <div ref={filterMenuRef} style={{ position: 'relative' }}>
       <button
         onClick={() => setShowFilterMenu(!showFilterMenu)}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = COLORS.primaryHover;
+          e.currentTarget.style.boxShadow = COLORS.shadow;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = COLORS.primary;
+          e.currentTarget.style.boxShadow = COLORS.shadowSm;
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
         style={{
-          padding: '0.5rem 1rem',
-          backgroundColor: '#007bff',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontWeight: '500',
+          ...buttonStyles.primary,
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
@@ -79,11 +84,11 @@ export default function GroupFilter({ groups, selectedGroup, onGroupSelect }: Gr
             position: 'absolute',
             top: '100%',
             right: 0,
-            marginTop: '0.25rem',
-            backgroundColor: 'white',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            marginTop: '0.5rem',
+            backgroundColor: COLORS.white,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: '8px',
+            boxShadow: COLORS.shadowLg,
             zIndex: 1000,
             minWidth: '200px',
             maxHeight: '400px',
@@ -100,16 +105,17 @@ export default function GroupFilter({ groups, selectedGroup, onGroupSelect }: Gr
               padding: '0.75rem 1rem',
               textAlign: 'left',
               border: 'none',
-              backgroundColor: selectedGroup === 'all' ? '#e7f3ff' : 'transparent',
+              backgroundColor: selectedGroup === 'all' ? COLORS.primaryLight : 'transparent',
               cursor: 'pointer',
               fontSize: '0.875rem',
-              color: '#000',
-              borderBottom: '1px solid #eee',
+              color: COLORS.textPrimary,
+              borderBottom: `1px solid ${COLORS.borderLight}`,
               fontWeight: selectedGroup === 'all' ? '600' : '400',
+              transition: 'all 0.2s ease-in-out',
             }}
             onMouseEnter={(e) => {
               if (selectedGroup !== 'all') {
-                e.currentTarget.style.backgroundColor = '#f5f5f5';
+                e.currentTarget.style.backgroundColor = COLORS.backgroundLight;
               }
             }}
             onMouseLeave={(e) => {
@@ -132,16 +138,17 @@ export default function GroupFilter({ groups, selectedGroup, onGroupSelect }: Gr
                 padding: '0.75rem 1rem',
                 textAlign: 'left',
                 border: 'none',
-                backgroundColor: selectedGroup === groupCode ? '#e7f3ff' : 'transparent',
+                backgroundColor: selectedGroup === groupCode ? COLORS.primaryLight : 'transparent',
                 cursor: 'pointer',
                 fontSize: '0.875rem',
-                color: '#000',
-                borderBottom: '1px solid #eee',
+                color: COLORS.textPrimary,
+                borderBottom: `1px solid ${COLORS.borderLight}`,
                 fontWeight: selectedGroup === groupCode ? '600' : '400',
+                transition: 'all 0.2s ease-in-out',
               }}
               onMouseEnter={(e) => {
                 if (selectedGroup !== groupCode) {
-                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                  e.currentTarget.style.backgroundColor = COLORS.backgroundLight;
                 }
               }}
               onMouseLeave={(e) => {

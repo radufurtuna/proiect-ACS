@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from core.database import SessionLocal
-from core.dependencies import get_db, get_admin_user
+from core.dependencies import get_db, get_admin_user, get_current_user
 from core.security import verify_password, create_access_token
 from core.verification_service import (
     create_verification_code,
@@ -11,6 +11,7 @@ from core.verification_service import (
 )
 from models.user import UserRole, User
 from repositories.user_repository import UserRepository
+from repositories.group_repository import GroupRepository
 from schemas.users import UserCreate, UserLogin, UserResponse, Token
 from schemas.auth import (
     CheckEmailRequest,
@@ -183,3 +184,34 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     )
 
     return Token(access_token=access_token, token_type="bearer", role=user.role.value)
+
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Returnează informațiile utilizatorului curent, inclusiv grupa asociată (dacă există).
+    Poate fi folosit de clientul student pentru a afla codul grupei proprii.
+    """
+    user_repo = UserRepository()
+    group_repo = GroupRepository()
+
+    user_group = user_repo.get_user_group(db, current_user.id)
+    group_id = None
+    group_code = None
+
+    if user_group:
+        group_id = user_group.group_id
+        group = group_repo.get_by_id(db, group_id)
+        if group:
+            group_code = group.code
+
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        role=current_user.role.value,
+        group_id=group_id,
+        group_code=group_code,
+    )

@@ -3,6 +3,7 @@
 import type { Schedule, ScheduleCreate, SessionStatus, SessionType } from '@/types/schedule';
 import type { Group, Professor, Room, Subject } from '@/types/schedule';
 import { SESSION_TYPE_OPTIONS, SESSION_STATUS_OPTIONS } from './types';
+import { buttonStyles, COLORS } from '@/utils/styles';
 
 type ScheduleModalProps = {
   show: boolean;
@@ -333,28 +334,41 @@ export default function ScheduleModal({
               <button
                 type="button"
                 onClick={onClose}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.textMuted;
+                  e.currentTarget.style.boxShadow = COLORS.shadow;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.textSecondary;
+                  e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
                 style={{
+                  ...buttonStyles.secondary,
                   padding: '0.75rem 1.5rem',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
+                  backgroundColor: COLORS.textSecondary,
+                  color: COLORS.white,
                   border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: '500',
                 }}
               >
                 Anulează
               </button>
               <button
                 type="submit"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.successHover;
+                  e.currentTarget.style.boxShadow = COLORS.shadow;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.success;
+                  e.currentTarget.style.boxShadow = COLORS.shadowSm;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
                 style={{
+                  ...buttonStyles.success,
                   padding: '0.75rem 1.5rem',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: '500',
                 }}
               >
                 {editingSchedule ? 'Salvează modificările' : 'Adaugă curs'}

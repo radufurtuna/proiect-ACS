@@ -152,7 +152,7 @@ export default function AssessmentScheduleGrid({ academicYear = 1, period = null
 
   const handleCancel = async () => {
     // Confirmă cu utilizatorul dacă dorește să anuleze modificările
-    const hasChanges = groups.length > 0 || Object.keys(cellData).length > 0 || assessmentRows.length > 0;
+    const hasChanges = assessmentRows.length > 0;
     
     if (hasChanges) {
       const confirmed = window.confirm(
@@ -163,86 +163,36 @@ export default function AssessmentScheduleGrid({ academicYear = 1, period = null
       }
     }
 
+    if (!period || academicYear === undefined || academicYear === null) {
+      setMessage({
+        type: 'error',
+        text: 'Lipsește anul academic sau perioada. Verifică selecțiile.',
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       setMessage(null);
-      
-      // Construiește parametrii de filtrare
-      const filterParams: {
-        academic_year?: number;
-        semester?: string;
-        cycle_type?: string;
-      } = {};
-      
-      if (academicYear !== undefined && academicYear !== null) {
-        filterParams.academic_year = academicYear;
-      }
-      if (period) {
-        filterParams.semester = period;
-      }
-      if (cycleType) {
-        filterParams.cycle_type = cycleType;
-      }
-      
-      // Reîncarcă datele existente din baza de date
-      const schedules = await scheduleService.getAllSchedules(Object.keys(filterParams).length > 0 ? filterParams : undefined);
-      
-      // Grupează schedule-urile după grup
-      const schedulesByGroup = new Map<string, Schedule[]>();
-      for (const schedule of schedules) {
-        const groupCode = schedule.group.code;
-        if (!schedulesByGroup.has(groupCode)) {
-          schedulesByGroup.set(groupCode, []);
-        }
-        schedulesByGroup.get(groupCode)!.push(schedule);
-      }
 
-      // Creează coloanele pentru grupele care au schedule-uri
-      const newGroups: GroupColumn[] = [];
-      const newCellData: Record<string, Record<string, CellData>> = {};
+      // Reîncarcă evaluările periodice din baza de date
+      const loadedRows = await loadAssessmentSchedules(academicYear, period, cycleType);
 
-        for (const [groupCode, groupSchedules] of schedulesByGroup.entries()) {
-          const groupId = `group-${groupCode}-${Date.now()}`;
-          const referenceGroup = referenceGroups.find((rg) => rg.code === groupCode);
-          newGroups.push({
-            id: groupId,
-            groupName: groupCode,
-            groupId: referenceGroup?.id,
-          });
-
-        // Populează datele pentru fiecare celulă
-        const groupCellData: Record<string, CellData> = {};
-        for (const schedule of groupSchedules) {
-          const key = getCellKey(schedule.day, schedule.hour);
-          groupCellData[key] = {
-            subject: schedule.subject.name,
-            professor: schedule.professor.full_name,
-            room: schedule.room.code,
-          };
-        }
-        newCellData[groupId] = groupCellData;
-      }
-
-      setGroups(newGroups);
-      setCellData(newCellData);
-      setAssessmentRows([]); // Resetează rândurile de evaluare periodică
+      // Păstrează doar rândurile goale/nesalvate? Cerința: rândurile salvate să revină,
+      // cele goale/nesalvate să dispară. Reîncărcarea din DB le elimină automat.
+      setAssessmentRows(loadedRows);
       setShowDeleteMenu(false);
-      
+
       setMessage({
         type: 'success',
-        text: 'Modificările au fost anulate. Datele au fost reîncărcate din baza de date.',
+        text: 'Modificările au fost anulate. Evaluările au fost reîncărcate din baza de date.',
       });
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      console.error('Eroare la reîncărcarea datelor:', err);
-      // Dacă apare o eroare, resetează totuși UI-ul
-      setGroups([]);
-      setCellData({});
-      setAssessmentRows([]); // Resetează rândurile de evaluare periodică
-      setShowDeleteMenu(false);
+      console.error('Eroare la reîncărcarea evaluărilor periodice:', err);
       setMessage({
         type: 'error',
-        text: 'Eroare la reîncărcarea datelor. Grila a fost resetată.',
+        text: 'Eroare la reîncărcarea evaluărilor periodice.',
       });
       setTimeout(() => setMessage(null), 5000);
     } finally {
@@ -508,6 +458,11 @@ export default function AssessmentScheduleGrid({ academicYear = 1, period = null
         onDeleteAllGroups={handleDeleteAllGroups}
         onCancel={handleCancel}
         academicYear={academicYear}
+        selectedGroupId={null}
+        onGroupFilterChange={() => {}}
+        showDeleteButton={false}
+        period={period}
+        cycleType={cycleType}
       />
       {message && (
         <div

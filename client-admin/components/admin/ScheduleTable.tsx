@@ -38,6 +38,9 @@ export default function ScheduleTable({
   onOddWeekInputChange,
   onToggleOddWeek,
 }: ScheduleTableProps) {
+  // Calculează lățimea totală a tabelului bazată pe coloane
+  const totalWidth = 90 + 90 + (groups.length * 300); // 90px Zilele + 90px Orele + 300px per grupă
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <table
@@ -46,7 +49,8 @@ export default function ScheduleTable({
           fontSize: '0.875rem',
           border: '1px solid #000',
           tableLayout: 'fixed',
-          width: '100%',
+          width: `${totalWidth}px`,
+          minWidth: `${totalWidth}px`,
         }}
       >
         <thead>
@@ -120,9 +124,9 @@ export default function ScheduleTable({
                         fontWeight: 'bold',
                         verticalAlign: 'top',
                         color: '#000',
-                        width: '30px',
-                        minWidth: '30px',
-                        maxWidth: '30px',
+                        width: '90px',
+                        minWidth: '90px',
+                        maxWidth: '90px',
                       }}
                     >
                       {day}
@@ -134,9 +138,9 @@ export default function ScheduleTable({
                       padding: '0.5rem',
                       textAlign: 'center',
                       color: '#000',
-                      width: '30px',
-                      minWidth: '30px',
-                      maxWidth: '30px',
+                      width: '90px',
+                      minWidth: '90px',
+                      maxWidth: '90px',
                     }}
                   >
                     {hour}
